@@ -47,25 +47,35 @@
             Therefore, the separable kernel method yields a theoretical speedup of $8/5 \approx 1.6$.
     \end{itemize}
     The simple convolution method introduces the issue of strided memory access when counting the 6 neighbours that are
-    not horizontally adjacent to the current cell.
+    not horizontally adjacent to the current cell, as illustrated in Fig.\eqref{fig:neighbour-illustration}.
+
+    \begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.35\textwidth]{./figures/neighbour-illustration}
+    \caption{Illustration showing that the 6 vertical neighbours (highlighted in red) of the green cell are not contiguous
+    in memory when representing a 2D array as a 1D array of points in row-major order.}
+    \label{fig:neighbour-illustration}
+    \end{figure}
+
     Therefore, when implementing the simple convolution method, column-wise decomposition would be preferred as it would 
     reduce the number of cache misses.
-    This is because an $N \times N$ grid split into $P$ strips would yield a \inlinecode{N/P * sizeof(int)} byte distance
-    between a cell and it's vertical neighbour whereas the same grid split into $P$ columns would yield a
+    This is because an $N \times N$ grid split into $P$ columns would yield a \inlinecode{N/P * sizeof(int)} byte distance
+    between a cell and it's vertical neighbour whereas the same grid split into $P$ rows would yield a
     \inlinecode{N * sizeof(int)} byte distance, and $P$ blocks would yield a distance of yield
-    \inlinecode{sqrt(P) * sizeof(int)} (assuming $P$ is a square number and $N$ is perfectly divisible by $P$).
+    \inlinecode{N/sqrt(P) * sizeof(int)} (assuming $P$ is a square number and $N$ is perfectly divisible by $P$).
 
     However, the separable kernel method does not have this issue as the data is contiguous on the horizontal pass,
     and the data can be made contiguous for the vertical pass by transposing the grid.
     Therefore, it does not matter which decomposition method is used for the separable kernel method with respect to cache
     misses.
+    Furthermore, the type of domain decomposition used will also affect the speed of the transpose operation.
+    If the transpose operation is done by writing contiguous and reading strided (which is generally faster), then column
+    decomposition would be preferred as it would reduce the number of cache misses when reading the grid.
 
-    With this discussion, the preferred algorithm is to use the separable kernel method with row decomposition (for
-    simplicity).
-    Generally, writing contiguous is more efficient than reading contiguous so this technique will be preferred for
-    transposing the grid.
-    Likewise, a variety of OpenMP techniques will be used to multithread the convolution operation within MPI, and various
-    single thread optimisations will be explored to make use of SIMD vectorisation on the CPU level.
-    These are all explored and the assumptions above are all tested in the next section.
+    However, which decomposition method is faster is still dependent on how the memory exchange rates between MPI ranks
+    affects the overall performance of the algorithm, meaning both columns and blocks will need to be explored for efficiency.
+    Likewise, a variety of OpenMP techniques will be used to multithread the convolution and transpose operation within
+    each MPI rank, and various single thread optimisations will be explored to make use of SIMD vectorisation on the CPU level.
+    These are all explored and the assumptions above are all tested in the next section to identify the optimal algorithm.
 
 
