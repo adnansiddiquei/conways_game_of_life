@@ -16,18 +16,17 @@ build :
 clean :
 	@echo "Cleaning CMake Projects"
 	rm -rf build
+	rm -rf bin
 	@echo "Done Cleaning CMake Projects"
 	@echo "You need to run 'make build' to build the Projects again."
 
 all : build release
-	cp ./build/src/main main
 
 test :
 	ctest --test-dir build --output-on-failure
 
-clean_docs :
+clean-docs :
 	rm -rf docs
 
-docs : clean_docs
+docs : clean-docs
 	doxygen doxygen.config
-
