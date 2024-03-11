@@ -21,7 +21,6 @@ T& Array2D<T>::operator()(int i, int j) {
     return data[i * n_cols + j];
 }
 
-
 template <typename T>
 T* Array2D<T>::get_pointer() {
     return data;

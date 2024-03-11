@@ -1,6 +1,6 @@
-#include "array2d.h"
 #include <iostream>
 
+#include "array2d.h"
 
 int main(int argc, char *argv[]) {
     array2d::Array2D<int> arr(10, 10);
