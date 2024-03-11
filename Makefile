@@ -3,8 +3,6 @@ BUILDS = release debug build clean
 
 .PHONY := $(BUILDS)
 
-.DEFAULT_GOAL := release
-
 release :
 	@echo "Compiling Release"
 	cmake --build build
@@ -21,8 +19,15 @@ clean :
 	@echo "Done Cleaning CMake Projects"
 	@echo "You need to run 'make build' to build the Projects again."
 
+all : build release
+	cp ./build/src/main main
+
 test :
 	ctest --test-dir build --output-on-failure
 
-all : build release
-	cp ./build/src/main main
+clean_docs :
+	rm -rf docs
+
+docs : clean_docs
+	doxygen doxygen.config
+
