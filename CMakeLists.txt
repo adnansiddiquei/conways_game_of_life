@@ -6,6 +6,8 @@ project(
     LANGUAGES CXX
 )
 
+find_package(MPI REQUIRED)
+
 # Add the ./cmake/ folder to CMAKE_MODULE_PATH so that we can find the custom functions defined in there
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
