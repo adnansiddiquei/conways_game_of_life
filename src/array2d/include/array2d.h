@@ -16,7 +16,7 @@ class Array2D {
    private:
     int n_rows;  ///< Number of rows.
     int n_cols;  ///< Number of columns.
-    T* data;     ///< Pointer to the array data.
+    T *data;     ///< Pointer to the array data.
    public:
     /**
      * Constructor that initialises the 2D array to the specified dimensions and
@@ -41,14 +41,14 @@ class Array2D {
      *
      * @return Reference to element as the specified location `array(i, j)`.
      */
-    T& operator()(int i, int j);
+    T &operator()(int i, int j);
 
     /**
      * Returns pointer to the underlying array data.
      *
      * @return Pointer to the array data.
      */
-    T* get_pointer();
+    T *get_pointer();
 
     /**
      * Calculates the total number of elements in the array.
@@ -73,7 +73,7 @@ class Array2D {
 };
 
 template <typename T>
-void transpose(Array2D<T>& arr_transposed, Array2D<T>& arr);
+void transpose(Array2D<T> &arr_transposed, Array2D<T> &arr);
 
 }  // namespace array2d
 

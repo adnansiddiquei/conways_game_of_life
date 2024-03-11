@@ -7,12 +7,12 @@ BUILDS = release debug build clean
 
 release :
 	@echo "Compiling Release"
-	cmake --build build/release
+	cmake --build build
 	@echo "Done Compiling Release"
 
 build :
 	@echo "Building CMake Projects"
-	cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release
+	cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 	@echo "Done Building CMake Projects"
 
 clean :
@@ -21,5 +21,8 @@ clean :
 	@echo "Done Cleaning CMake Projects"
 	@echo "You need to run 'make build' to build the Projects again."
 
+test :
+	ctest --test-dir build --output-on-failure
+
 all : build release
-	cp ./build/release/src/main main
+	cp ./build/src/main main
