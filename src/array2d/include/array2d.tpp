@@ -17,12 +17,12 @@ Array2D<T>::~Array2D() {
 
 // Operator () overload implementation
 template <typename T>
-T& Array2D<T>::operator()(int i, int j) {
+T &Array2D<T>::operator()(int i, int j) {
     return data[i * n_cols + j];
 }
 
 template <typename T>
-T* Array2D<T>::get_pointer() {
+T *Array2D<T>::get_pointer() {
     return data;
 }
 
@@ -43,7 +43,7 @@ int Array2D<T>::get_cols() {
 
 // Transpose function implementation
 template <typename T>
-void array2d::transpose(Array2D<T>& arr_transposed, Array2D<T>& arr) {
+void array2d::transpose(Array2D<T> &arr_transposed, Array2D<T> &arr) {
     int n_rows = arr.get_rows(), n_cols = arr.get_cols();
 
     // transpose arr by writing contiguously
