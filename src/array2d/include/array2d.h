@@ -13,10 +13,11 @@ namespace array2d {
  */
 template <typename T>
 class Array2D {
-   private:
+   protected:
     int n_rows;  ///< Number of rows.
     int n_cols;  ///< Number of columns.
     T *data;     ///< Pointer to the array data.
+
    public:
     /**
      * Constructor that initialises the 2D array to the specified dimensions and
@@ -74,20 +75,12 @@ class Array2D {
 
 // TODO: comment this code
 template <typename T>
-class Array2DWithHalo {
+class Array2DWithHalo : public Array2D<T> {
    private:
-    int n_rows;     ///< Number of rows.
-    int n_cols;     ///< Number of columns.
     int halo_size;  ///< Number of cells in halo.
 
    public:
-    // Leave this public so all underlying functions in array2d::Array2D<T> are still
-    // accessible
-    array2d::Array2D<T> *data;
-
     Array2DWithHalo(int n_rows, int n_cols, int halo_size);
-
-    ~Array2DWithHalo();
 
     T &operator()(int i, int j);
 };
