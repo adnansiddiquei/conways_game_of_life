@@ -86,6 +86,30 @@ int parse_arg_int(int &argc, char *argv[], std::string option, bool required) {
     }
 }
 
+template <typename T>
+class Array2DWithHalo {
+   private:
+    int n_rows;     ///< Number of rows.
+    int n_cols;     ///< Number of columns.
+    int halo_size;  ///< Number of cells in halo.
+
+   public:
+    // Leave this public so all underlying functions are still useable
+    array2d::Array2D<T> *data;
+
+    Array2DWithHalo(int n_rows, int n_cols, int halo_size) {
+        this->n_rows = n_rows;
+        this->n_cols = n_cols;
+        this->halo_size = halo_size;
+
+        data = new array2d::Array2D<T>(n_rows + halo_size, n_cols + halo_size);
+    };
+
+    ~Array2DWithHalo() { delete data; }
+
+    T &operator()(int i, int j) { return (*data)((i + halo_size), (j + halo_size)); };
+};
+
 int main(int argc, char *argv[]) {
     // parse the arguments passed into the script
     int grid_size = parse_arg_int(argc, argv, "--grid-size", true);
