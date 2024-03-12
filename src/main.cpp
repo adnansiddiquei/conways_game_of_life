@@ -1,5 +1,6 @@
 #include <mpi.h>
 
+#include <array>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
@@ -86,8 +87,50 @@ int parse_arg_int(int &argc, char *argv[], std::string option, bool required) {
 }
 
 int main(int argc, char *argv[]) {
+    // parse the arguments passed into the script
     int grid_size = parse_arg_int(argc, argv, "--grid-size", true);
     int random_seed = parse_arg_int(argc, argv, "--random-seed", false);
 
+    // Now we create the MPI ranks and set up the cartesian communicator
+    MPI_Init(&argc, &argv);
 
+    int rank, n_ranks;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+
+    // settings for the cartesian2d communicator
+    int dims[2] = {1, n_ranks};  // column-wise decomposition - 1 row, n_ranks columns
+    int periods[2] = {1, 1};     // periodic boundary conditions in both axies
+    int reorder = 1;
+
+    // create the cartesian2d communicator
+    MPI_Comm cartesian2d;
+    MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, reorder, &cartesian2d);
+
+    // now save down which ranks are in each direction of each rank
+    int left, right, up, down;
+    MPI_Cart_shift(cartesian2d, 1, 1, &left, &right);
+    MPI_Cart_shift(cartesian2d, 0, 1, &down, &up);
+
+    // Get the grid size of the decomposed grid
+    /**
+     * TODO: In the case that grid_size / n_ranks == 0.
+     * This code needs to be edited to handle when the grid might be very small.
+     * Maybe in that case just don't even bother doing domain decomposition.
+     */
+    std::array<int, 2> decomposed_grid_size = [&rank, &n_ranks,
+                                               &grid_size]() -> std::array<int, 2> {
+        if (rank + 1 != n_ranks) {
+            return {grid_size, grid_size / n_ranks};
+        } else {
+            return {grid_size, grid_size - (n_ranks - 1) * (grid_size / n_ranks)};
+        }
+    }();
+
+    // Create the 2D array that will represent the decomposed domain
+    array2d::Array2D<int> grid(decomposed_grid_size[0], decomposed_grid_size[1]);
+
+    MPI_Finalize();
+
+    return 0;
 }
