@@ -1,10 +1,16 @@
 cmake_minimum_required(VERSION 3.15...3.26)
 
+# Set C++ standard / version
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 project(
     conways_game_of_life
     VERSION 1.0
     LANGUAGES CXX
 )
+
+find_package(MPI REQUIRED)
 
 # Add the ./cmake/ folder to CMAKE_MODULE_PATH so that we can find the custom functions defined in there
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
