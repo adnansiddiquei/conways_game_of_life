@@ -72,6 +72,26 @@ class Array2D {
     int get_cols();
 };
 
+// TODO: comment this code
+template <typename T>
+class Array2DWithHalo {
+   private:
+    int n_rows;     ///< Number of rows.
+    int n_cols;     ///< Number of columns.
+    int halo_size;  ///< Number of cells in halo.
+
+   public:
+    // Leave this public so all underlying functions in array2d::Array2D<T> are still
+    // accessible
+    array2d::Array2D<T> *data;
+
+    Array2DWithHalo(int n_rows, int n_cols, int halo_size);
+
+    ~Array2DWithHalo();
+
+    T &operator()(int i, int j);
+};
+
 /**
  * Transposes `arr` and save it into `arr_transposed`.
  *
