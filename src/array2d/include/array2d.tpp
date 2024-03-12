@@ -1,6 +1,10 @@
 #include "array2d.h"
 using namespace array2d;
 
+/**
+ * Implementation for Array2D class.
+ */
+
 // Constructor implementation
 template <typename T>
 Array2D<T>::Array2D(int n_rows, int n_cols) {
@@ -40,6 +44,35 @@ template <typename T>
 int Array2D<T>::get_cols() {
     return n_cols;
 }
+
+/**
+ * Implementation for Array2DWithHalo class.
+ */
+
+template <typename T>
+Array2DWithHalo<T>::Array2DWithHalo(int n_rows, int n_cols, int halo_size) {
+    this->n_rows = n_rows;
+    this->n_cols = n_cols;
+    this->halo_size = halo_size;
+
+    data = new array2d::Array2D<T>(n_rows + halo_size, n_cols + halo_size);
+};
+
+// Destructor implementation
+template <typename T>
+Array2DWithHalo<T>::~Array2DWithHalo() {
+    delete data;
+};
+
+// Operator () overload implementation
+template <typename T>
+T &Array2DWithHalo<T>::operator()(int i, int j) {
+    return (*data)((i + halo_size), (j + halo_size));
+};
+
+/**
+ * Implementation for other functions.
+ */
 
 // Transpose function implementation
 template <typename T>
