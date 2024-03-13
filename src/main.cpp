@@ -173,8 +173,7 @@ int main(int argc, char *argv[]) {
     }();
 
     // Create the 2D array that will represent the decomposed domain
-    conway::ConwaysArray2DWithHalo grid(decomposed_grid_size[0],
-                                        decomposed_grid_size[1], 1);
+    conway::ConwaysArray2DWithHalo grid(decomposed_grid_size[0], decomposed_grid_size[1]);
 
     // Fill the grid (excluding the halo) with 1s and 0s according to the probability
     // and random_seed the user inputted on the command line.

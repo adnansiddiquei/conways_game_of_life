@@ -7,8 +7,8 @@
 using namespace conway;
 using namespace array2d;
 
-ConwaysArray2DWithHalo::ConwaysArray2DWithHalo(int n_rows, int n_cols, int halo_size)
-    : Array2DWithHalo<short int>(n_rows, n_cols, halo_size){
+ConwaysArray2DWithHalo::ConwaysArray2DWithHalo(int n_rows, int n_cols)
+    : Array2DWithHalo<short int>(n_rows, n_cols){
           // Nothing required
       };
 

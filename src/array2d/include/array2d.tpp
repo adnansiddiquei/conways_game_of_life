@@ -50,16 +50,15 @@ int Array2D<T>::get_cols() {
  */
 
 template <typename T>
-Array2DWithHalo<T>::Array2DWithHalo(int n_rows, int n_cols, int halo_size)
-    : Array2D<T>(n_rows + 2 * halo_size, n_cols + 2 * halo_size) {
+Array2DWithHalo<T>::Array2DWithHalo(int n_rows, int n_cols)
+    : Array2D<T>(n_rows + 2, n_cols + 2) {
     this->n_rows = n_rows;
     this->n_cols = n_cols;
-    this->halo_size = halo_size;
 };
 
 template <typename T>
 T &Array2DWithHalo<T>::operator()(int i, int j) {
-    return this->data[(i + halo_size) * this->n_cols + (j + halo_size)];
+    return this->data[(i + 1) * this->n_cols + (j + 1)];
 };
 
 /**
