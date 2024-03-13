@@ -58,7 +58,7 @@ Array2DWithHalo<T>::Array2DWithHalo(int n_rows, int n_cols)
 
 template <typename T>
 T &Array2DWithHalo<T>::operator()(int i, int j) {
-    return this->data[(i + 1) * this->n_cols + (j + 1)];
+    return this->data[(i + 1) * (this->n_cols + 2) + (j + 1)];
 };
 
 /**
