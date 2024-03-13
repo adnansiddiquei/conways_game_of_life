@@ -1,5 +1,6 @@
 add_subdirectory(array2d)
 add_subdirectory(conway)
+add_subdirectory(optims)
 
 add_executable(main main.cpp)
 ClangFormat(main .)
