@@ -3,10 +3,12 @@
 #include <array>
 #include <cstdlib>
 #include <iostream>
+#include <random>
 #include <stdexcept>
 #include <utility>
 
 #include "array2d.h"
+#include "conway.h"
 
 /**
  * Parses the command line arguments passed into this script, and returns the value (as
@@ -52,7 +54,7 @@ std::string parse_arg(int &argc, char *argv[], std::string option, bool required
  * Parses the command line arguments passed into this script, and returns the value (as
  * an int) of the requested option.
  *
- * `0` is returned if the option is not required and was not provided.
+ * `-1` is returned if the option is not required and was not provided.
  *
  * @param argc The count of arguments passed into the script.
  * @param argv The values passed into the script.
@@ -66,9 +68,9 @@ std::string parse_arg(int &argc, char *argv[], std::string option, bool required
 int parse_arg_int(int &argc, char *argv[], std::string option, bool required) {
     std::string arg = parse_arg(argc, argv, option, required);
 
-    // If the option is not required and has not been provided, return a 0.
+    // If the option is not required and has not been provided, return a -1.
     if (!required & arg == "") {
-        return 0;
+        return -1;
     }
 
     // try a type conversion to int, but raise the  appropriate error if this fails
@@ -86,10 +88,49 @@ int parse_arg_int(int &argc, char *argv[], std::string option, bool required) {
     }
 }
 
+/**
+ * Parses the command line arguments passed into this script, and returns the value (as
+ * a float) of the requested option.
+ *
+ * `-1.` is returned if the option is not required and was not provided.
+ *
+ * @param argc The count of arguments passed into the script.
+ * @param argv The values passed into the script.
+ * @param option The option to retrieve the value for.
+ * @param required Whether the specified option is required. If it is required, the
+ * program will exit with an appropriate error message.
+ *
+ * @return The value (as a float) of the requested option.
+ *
+ */
+float parse_arg_float(int &argc, char *argv[], std::string option, bool required) {
+    std::string arg = parse_arg(argc, argv, option, required);
+
+    // If the option is not required and has not been provided, return a -1.
+    if (!required & arg == "") {
+        return -1.;
+    }
+
+    // try a type conversion to float, but raise the appropriate error if this fails
+    try {
+        return std::stof(arg);
+    } catch (const std::invalid_argument &e) {
+        std::cerr << "Invalid argument: " << option << " argument must a float."
+                  << std::endl;
+        std::exit(1);
+    } catch (const std::out_of_range &e) {
+        // Handle case where the string represents a number outside the range of int
+        std::cerr << "Out of range: " << option << " argument is too large."
+                  << std::endl;
+        std::exit(1);
+    }
+}
+
 int main(int argc, char *argv[]) {
     // parse the arguments passed into the script
     int grid_size = parse_arg_int(argc, argv, "--grid-size", true);
     int random_seed = parse_arg_int(argc, argv, "--random-seed", false);
+    float probability = parse_arg_float(argc, argv, "--probability", true);
 
     // Now we create the MPI ranks and set up the cartesian communicator
     MPI_Init(&argc, &argv);
@@ -99,8 +140,9 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
     // settings for the cartesian2d communicator
-    int dims[2] = {1, n_ranks};  // column-wise decomposition - 1 row, n_ranks columns
-    int periods[2] = {1, 1};     // periodic boundary conditions in both axies
+    int dims[2] = {1,
+                   n_ranks};  // column-wise decomposition: 1 row and `n_ranks` columns
+    int periods[2] = {1, 1};  // periodic boundary conditions in both axes
     int reorder = 1;
 
     // create the cartesian2d communicator
@@ -123,12 +165,20 @@ int main(int argc, char *argv[]) {
         if (rank + 1 != n_ranks) {
             return {grid_size, grid_size / n_ranks};
         } else {
+            // for the last rank, the number of columns may be different so the below
+            // line accounts for the fact that grid_size may not be perfectly divisible
+            // by n_ranks
             return {grid_size, grid_size - (n_ranks - 1) * (grid_size / n_ranks)};
         }
     }();
 
     // Create the 2D array that will represent the decomposed domain
-    array2d::Array2D<int> grid(decomposed_grid_size[0], decomposed_grid_size[1]);
+    conway::ConwaysArray2DWithHalo grid(decomposed_grid_size[0],
+                                        decomposed_grid_size[1], 1);
+
+    // Fill the grid (excluding the halo) with 1s and 0s according to the probability
+    // and random_seed the user inputted on the command line.
+    grid.fill_randomly(probability, random_seed);
 
     MPI_Finalize();
 

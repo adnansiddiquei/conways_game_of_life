@@ -6,6 +6,7 @@ docs/
 CMakeFiles/
 **/*/cmake-build-debug/
 bin
+.vscode/
 
 ### TeX template
 ## Core latex/pdflatex auxiliary files:
