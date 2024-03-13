@@ -31,7 +31,7 @@ class Array2D {
     /**
      * Class destructor, frees the array from memory when it is no longer needed.
      */
-    ~Array2D();
+    virtual ~Array2D();
 
     /**
      * Overloads the function call operator to provide access to the array
