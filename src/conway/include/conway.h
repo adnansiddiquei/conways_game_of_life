@@ -5,9 +5,9 @@
 
 // TODO: comment
 namespace conway {
-class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<short int> {
+class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
    public:
-    ConwaysArray2DWithHalo(int n_rows, int n_cols, int halo_size);
+    ConwaysArray2DWithHalo(int n_rows, int n_cols);
 
     void fill_randomly(float probability, int random_seed);
 };

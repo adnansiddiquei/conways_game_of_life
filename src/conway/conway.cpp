@@ -7,8 +7,8 @@
 using namespace conway;
 using namespace array2d;
 
-ConwaysArray2DWithHalo::ConwaysArray2DWithHalo(int n_rows, int n_cols, int halo_size)
-    : Array2DWithHalo<short int>(n_rows, n_cols, halo_size){
+ConwaysArray2DWithHalo::ConwaysArray2DWithHalo(int n_rows, int n_cols)
+    : Array2DWithHalo<int>(n_rows, n_cols){
           // Nothing required
       };
 
@@ -29,8 +29,8 @@ void ConwaysArray2DWithHalo::fill_randomly(float probability, int random_seed = 
     // Initialise bernouli distribution with seed
     std::bernoulli_distribution dis(probability);
 
-    int n_rows = this->get_cols();
-    int n_cols = this->get_rows();
+    int n_rows = this->get_rows();
+    int n_cols = this->get_cols();
 
     // Fill in every cell value (excluding halo cells) with a 0 or 1, according to
     // `probability`

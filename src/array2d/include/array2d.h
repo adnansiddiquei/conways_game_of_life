@@ -76,11 +76,8 @@ class Array2D {
 // TODO: comment this code
 template <typename T>
 class Array2DWithHalo : public Array2D<T> {
-   private:
-    int halo_size;  ///< Number of cells in halo.
-
    public:
-    Array2DWithHalo(int n_rows, int n_cols, int halo_size);
+    Array2DWithHalo(int n_rows, int n_cols);
 
     T &operator()(int i, int j);
 };

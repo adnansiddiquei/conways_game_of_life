@@ -172,13 +172,111 @@ int main(int argc, char *argv[]) {
         }
     }();
 
+    int n_rows = decomposed_grid_size[0];
+    int n_cols = decomposed_grid_size[1];
+
     // Create the 2D array that will represent the decomposed domain
-    conway::ConwaysArray2DWithHalo grid(decomposed_grid_size[0],
-                                        decomposed_grid_size[1], 1);
+    conway::ConwaysArray2DWithHalo grid(n_rows, n_cols);
 
     // Fill the grid (excluding the halo) with 1s and 0s according to the probability
     // and random_seed the user inputted on the command line.
     grid.fill_randomly(probability, random_seed);
+
+    // Create a custom MPI type to allow us to send non-contiguos data, i.e., left and
+    // right borders
+    MPI_Datatype MPI_Column_type;
+
+    MPI_Type_vector(n_rows,      // Number of elements in a column
+                    1,           // one element at a time
+                    n_cols + 2,  // the stride, distance between two elements
+                    MPI_INT, &MPI_Column_type);
+
+    MPI_Type_commit(&MPI_Column_type);
+
+    // Send the top border to the bottom halo
+    MPI_Request send_request_top, recv_request_top;
+
+    MPI_Isend(&grid(0, 0), n_cols, MPI_INT, up, 0, cartesian2d, &send_request_top);
+    MPI_Irecv(&grid(n_rows, 0), n_cols, MPI_INT, down, 0, cartesian2d,
+              &recv_request_top);
+
+    // Send the bottom border to the top halo
+    MPI_Request send_request_bottom, recv_request_bottom;
+
+    MPI_Isend(&grid(n_rows - 1, 0), n_cols, MPI_INT, down, 1, cartesian2d,
+              &send_request_bottom);
+    MPI_Irecv(&grid(-1, 0), n_cols, MPI_INT, up, 1, cartesian2d, &recv_request_bottom);
+
+    // Send the left border to the right halo
+    MPI_Request send_request_left, recv_request_left;
+
+    MPI_Isend(&grid(0, 0), 1, MPI_Column_type, left, 2, cartesian2d,
+              &send_request_left);
+    MPI_Irecv(&grid(0, n_cols), 1, MPI_Column_type, right, 2, cartesian2d,
+              &recv_request_left);
+
+    // Send the right border to the left halo
+    MPI_Request send_request_right, recv_request_right;
+
+    MPI_Isend(&grid(0, n_cols - 1), 1, MPI_Column_type, right, 3, cartesian2d,
+              &send_request_right);
+    MPI_Irecv(&grid(0, -1), 1, MPI_Column_type, left, 3, cartesian2d,
+              &recv_request_right);
+
+    // Now we wait for the messages to all send and be recieved
+    MPI_Wait(&send_request_top, MPI_STATUS_IGNORE);
+    MPI_Wait(&recv_request_top, MPI_STATUS_IGNORE);
+
+    MPI_Wait(&send_request_bottom, MPI_STATUS_IGNORE);
+    MPI_Wait(&recv_request_bottom, MPI_STATUS_IGNORE);
+
+    MPI_Wait(&send_request_left, MPI_STATUS_IGNORE);
+    MPI_Wait(&recv_request_left, MPI_STATUS_IGNORE);
+
+    MPI_Wait(&send_request_right, MPI_STATUS_IGNORE);
+    MPI_Wait(&recv_request_right, MPI_STATUS_IGNORE);
+
+    if (rank == 1) {
+        std::cout << "Rank: " << rank << std::endl;
+        std::cout << "n_rows: " << n_rows << " n_cols: " << n_cols << std::endl;
+
+        // print out bottom border
+        for (int i = 0; i < n_cols; i++) {
+            std::cout << grid(n_rows - 1, i) << " ";
+        }
+
+        std::cout << std::endl;
+        // top halo
+        for (int i = 0; i < n_cols; i++) {
+            std::cout << grid(-1, i) << " ";
+        }
+
+        std::cout << std::endl << std::endl;
+        // top border
+        for (int i = 0; i < n_cols; i++) {
+            std::cout << grid(0, i) << " ";
+        }
+
+        std::cout << std::endl;
+        // bottom halo
+        for (int i = 0; i < n_cols; i++) {
+            std::cout << grid(n_rows, i) << " ";
+        }
+
+        std::cout << std::endl << std::endl;
+        // left halo
+        for (int i = 0; i < n_rows; i++) {
+            std::cout << grid(i, -1) << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    if (rank == 0) {
+        // right border
+        for (int i = 0; i < n_rows; i++) {
+            std::cout << grid(i, n_cols - 1) << " ";
+        }
+    }
 
     MPI_Finalize();
 
