@@ -1,5 +1,7 @@
 #include "conway.h"
 
+#include <omp.h>
+
 #include <random>
 
 #include "array2d.h"

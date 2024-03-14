@@ -3,6 +3,12 @@ cmake_minimum_required(VERSION 3.15...3.26)
 # Set C++ standard / version
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# set(CMAKE_EXPORT_COMPILE_COMMANDS=ON)
+set(CMAKE_CXX_FLAGS "-fopenmp")
+
+if(APPLE AND EXISTS "/opt/homebrew/bin/g++-13")
+    SET(CMAKE_CXX_COMPILER "/opt/homebrew/bin/g++-13")
+endif()
 
 project(
     conways_game_of_life
