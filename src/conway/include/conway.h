@@ -9,7 +9,9 @@ class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
    public:
     ConwaysArray2DWithHalo(int n_rows, int n_cols);
 
-    void fill_randomly(float probability, int random_seed);
+    void fill_randomly(float probability, int random_seed = -1, bool fill_halo = false);
+
+    void simple_convolve(array2d::Array2D<int> &neighbour_count);
 };
 }  // namespace conway
 
