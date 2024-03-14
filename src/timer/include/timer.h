@@ -1,9 +1,9 @@
-#ifndef TIMING_H
-#define TIMING_H
+#ifndef TIMER_H
+#define TIMER_H
 
-namespace timing{
+namespace timer {
     void start_clock();
     double get_split();
-} // namespace timing
+} // namespace timer
 
-#endif // TIMING_H
+#endif // TIMER_H

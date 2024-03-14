@@ -1,9 +1,9 @@
-add_library(timing_lib
+add_library(timer_lib
     STATIC 
-    timing.cpp
+    timer.cpp
 )
 
-target_include_directories(timing_lib
+target_include_directories(timer_lib
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
