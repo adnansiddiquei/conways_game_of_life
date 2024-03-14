@@ -2,8 +2,8 @@
 #define TIMER_H
 
 namespace timer {
-    void start_clock();
-    double get_split();
-} // namespace timer
+void start_clock();
+double get_split();
+}  // namespace timer
 
-#endif // TIMER_H
+#endif  // TIMER_H

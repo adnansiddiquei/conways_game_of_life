@@ -53,6 +53,7 @@ void ConwaysArray2DWithHalo::fill_randomly(float probability, int random_seed,
 }
 
 void ConwaysArray2DWithHalo::simple_convolve(array2d::Array2D<int> &neighbour_count) {
+#pragma omp parallel for collapse(2)
     for (int i = 0; i < n_rows; i++) {
         for (int j = 0; j < n_cols; j++) {
             // count horizontal neighbours
