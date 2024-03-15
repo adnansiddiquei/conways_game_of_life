@@ -15,8 +15,11 @@ class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
 
     void separable_convolution(array2d::Array2D<int> &neighbour_count);
 
-    // void separable_convolution_with_transpose(array2d::Array2D<int>
-    // &neighbour_count);
+    void transition_ifs(array2d::Array2D<int> &neighbour_count);
+
+    // void transition_lookup(array2d::Array2D<int> &neighbour_count);
+
+    // void transition_bitwise(array2d::Array2D<int> &neighbour_count);
 };
 }  // namespace conway
 

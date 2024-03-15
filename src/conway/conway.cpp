@@ -89,3 +89,20 @@ void ConwaysArray2DWithHalo::separable_convolution(
         }
     }
 }
+
+void ConwaysArray2DWithHalo::transition_ifs(array2d::Array2D<int> &neighbour_count) {
+#pragma omp parallel for collapse(2)
+    for (int i = 0; i < this->n_rows; i++) {
+        for (int j = 0; j < this->n_cols; j++) {
+            int is_alive = (*this)(i, j);
+
+            if (is_alive && neighbour_count(i, j) < 2) {
+                (*this)(i, j) = 0;  // die by underpopulation
+            } else if (is_alive && neighbour_count(i, j) > 3) {
+                (*this)(i, j) = 0;  // die by overpopulation
+            } else if (!is_alive && neighbour_count(i, j) == 3) {
+                (*this)(i, j) = 1;  // reproduction
+            }
+        }
+    }
+}
