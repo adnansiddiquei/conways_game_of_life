@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "../src/array2d/include/array2d.h"
+#include "array2d.h"
 
 /**
  * Test array2d::Array2D
