@@ -2,6 +2,7 @@
 
 #include <omp.h>
 
+#include <array>
 #include <random>
 
 #include "array2d.h"
@@ -103,6 +104,26 @@ void ConwaysArray2DWithHalo::transition_ifs(array2d::Array2D<int> &neighbour_cou
             } else if (!is_alive && neighbour_count(i, j) == 3) {
                 (*this)(i, j) = 1;  // reproduction
             }
+        }
+    }
+}
+
+void ConwaysArray2DWithHalo::transition_lookup(array2d::Array2D<int> &neighbour_count) {
+    // lookup table is indexed by lookup_table[is_alive * 9 + neighbour_count(i, j)]
+    std::array<int, 18> lookup_table = {
+        0, 0, 0, 1, 0,
+        0, 0, 0, 0,  // Dead cells spawn if they have 3 neighbours exactly
+        0, 0, 1, 1, 0,
+        0, 0, 0, 0  // Living cell stays alive with 2 or 3 live neighbors; otherwise,
+                    // die
+    };
+
+#pragma omp parallel for collapse(2)
+    for (int i = 0; i < this->n_rows; i++) {
+        for (int j = 0; j < this->n_cols; j++) {
+            int is_alive = (*this)(i, j);
+
+            (*this)(i, j) = lookup_table[is_alive * 9 + neighbour_count(i, j)];
         }
     }
 }
