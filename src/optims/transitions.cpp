@@ -10,7 +10,7 @@
 
 int main(int argc, char *argv[]) {
     // Open the output file
-    std::ofstream output_file("src/plotting/convolutions.csv");
+    std::ofstream output_file("src/plotting/transitions.csv");
 
     // Throw an error in case the file failed to open
     if (!output_file.is_open()) {
@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
         std::vector<int> gs;
         gs.reserve(10);
 
-        for (int i = 1; i < 13; i++) {
+        for (int i = 1; i < 17; i++) {
             gs.push_back(i * 1000);
         }
 
@@ -44,7 +44,6 @@ int main(int argc, char *argv[]) {
 
     output_file << "method,num_threads,grid_size,duration" << std::endl;
 
-    // Time the simple_convolution
     for (int num_threads : all_num_threads) {
         for (int grid_size : grid_sizes) {
             omp_set_num_threads(num_threads);
@@ -54,26 +53,17 @@ int main(int argc, char *argv[]) {
             grid.fill_randomly(0.5, -1, true);  // fill all cells, including halo
 
             array2d::Array2D<int> neighbour_count(grid_size, grid_size, 0);
-
-            timer::start_clock();
-
             grid.simple_convolve(neighbour_count);  // do the neighbour count
 
+            timer::start_clock();
+            grid.transition_ifs(neighbour_count);
             double duration = timer::get_split();
 
-            output_file << "simple_convolve," << num_threads << "," << grid_size << ","
-                        << duration << std::endl;
-
-            // int i = 3, j = 7;
-            // int sum = grid(i, j - 1) + grid(i, j + 1) + grid(i - 1, j - 1) +
-            //           grid(i - 1, j) + grid(i - 1, j + 1) + grid(i + 1, j - 1) +
-            //           grid(i + 1, j) + grid(i + 1, j + 1);
-
-            // std::cout << sum << " " << neighbour_count(i, j) << std::endl;
+            output_file << "ifs," << num_threads << "," << grid_size << "," << duration
+                        << std::endl;
         }
     }
 
-    // Time the separable_convolution
     for (int num_threads : all_num_threads) {
         for (int grid_size : grid_sizes) {
             omp_set_num_threads(num_threads);
@@ -83,15 +73,34 @@ int main(int argc, char *argv[]) {
             grid.fill_randomly(0.5, -1, true);  // fill all cells, including halo
 
             array2d::Array2D<int> neighbour_count(grid_size, grid_size, 0);
+            grid.simple_convolve(neighbour_count);  // do the neighbour count
 
             timer::start_clock();
-
-            grid.separable_convolution(neighbour_count);  // do the neighbour count
-
+            grid.transition_lookup(neighbour_count);
             double duration = timer::get_split();
 
-            output_file << "separable_convolution," << num_threads << "," << grid_size
-                        << "," << duration << std::endl;
+            output_file << "lookup," << num_threads << "," << grid_size << ","
+                        << duration << std::endl;
+        }
+    }
+
+    for (int num_threads : all_num_threads) {
+        for (int grid_size : grid_sizes) {
+            omp_set_num_threads(num_threads);
+            num_threads = omp_get_max_threads();
+
+            conway::ConwaysArray2DWithHalo grid(grid_size, grid_size);
+            grid.fill_randomly(0.5, -1, true);  // fill all cells, including halo
+
+            array2d::Array2D<int> neighbour_count(grid_size, grid_size, 0);
+            grid.simple_convolve(neighbour_count);  // do the neighbour count
+
+            timer::start_clock();
+            grid.transition_bitwise(neighbour_count);
+            double duration = timer::get_split();
+
+            output_file << "bitwise," << num_threads << "," << grid_size << ","
+                        << duration << std::endl;
         }
     }
 
