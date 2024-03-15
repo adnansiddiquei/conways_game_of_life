@@ -13,6 +13,19 @@ Array2D<T>::Array2D(int n_rows, int n_cols) {
     data = new T[n_rows * n_cols];
 }
 
+template <typename T>
+Array2D<T>::Array2D(int n_rows, int n_cols, T initial_value) {
+    this->n_rows = n_rows;
+    this->n_cols = n_cols;
+    data = new T[n_rows * n_cols];
+
+    for (int i = 0; i < n_rows; i++) {
+        for (int j = 0; j < n_cols; j++) {
+            data[i * n_cols + j] = initial_value;
+        }
+    }
+}
+
 // Destructor implementation
 template <typename T>
 Array2D<T>::~Array2D() {

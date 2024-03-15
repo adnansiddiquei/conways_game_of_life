@@ -29,6 +29,15 @@ class Array2D {
     Array2D(int n_rows, int n_cols);
 
     /**
+     * Constructor that initialises the 2D array to the specified dimensions and
+     * allocates memory for the array elements, and sets the value for each cell.
+     *
+     * @param n_rows Number of rows in array.
+     * @param n_cols Number of columns in array.
+     */
+    Array2D(int n_rows, int n_cols, T initial_value);
+
+    /**
      * Class destructor, frees the array from memory when it is no longer needed.
      */
     virtual ~Array2D();
