@@ -91,19 +91,6 @@ class Array2DWithHalo : public Array2D<T> {
     T &operator()(int i, int j);
 };
 
-/**
- * Transposes `arr` and save it into `arr_transposed`.
- *
- * It is expected that both `arr` and `arr_transposed` are of the dimensions, for speed,
- * no checks are done to ensure that they of the same dimensions.
- *
- * @tparam T The type of the elements in `arr` and `arr_transposed`.
- * @param arr_transposed The array to save the transpose into.
- * @param arr The array to transpose.
- */
-template <typename T>
-void transpose(Array2D<T> &arr_transposed, Array2D<T> &arr);
-
 }  // namespace array2d
 
 #include "array2d.tpp"

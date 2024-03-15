@@ -20,6 +20,17 @@ target_link_libraries(test_array2d
     GTest::gtest_main
 )
 
+# Add the test_conway tests and also format the file with ClangFormat
+add_executable(test_conway test_conway.cpp)
+ClangFormat(test_conway .)
+
+target_link_libraries(test_conway
+    PRIVATE conway_lib
+    GTest::gtest_main
+)
+
 include(GoogleTest)
+
 gtest_discover_tests(test_array2d)
+gtest_discover_tests(test_conway)
 

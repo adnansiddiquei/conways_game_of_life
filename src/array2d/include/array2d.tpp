@@ -73,20 +73,3 @@ template <typename T>
 T &Array2DWithHalo<T>::operator()(int i, int j) {
     return this->data[(i + 1) * (this->n_cols + 2) + (j + 1)];
 };
-
-/**
- * Implementation for other functions.
- */
-
-// Transpose function implementation
-template <typename T>
-void array2d::transpose(Array2D<T> &arr_transposed, Array2D<T> &arr) {
-    int n_rows = arr.get_rows(), n_cols = arr.get_cols();
-
-    // transpose arr by writing contiguously
-    for (int i = 0; i < n_rows; i++) {
-        for (int j = 0; j < n_cols; ++j) {
-            arr_transposed(i, j) = arr(j, i);
-        }
-    }
-};

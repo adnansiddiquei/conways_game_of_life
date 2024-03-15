@@ -5,40 +5,53 @@
 
 #include <gtest/gtest.h>
 
-#include "../src/array2d/include/array2d.h"
+#include "array2d.h"
 
 /**
- * Tests basic array operations such as creating, editing and using class methods.
+ * Test array2d::Array2D
  */
-TEST(array2d, array_operations) {
-    array2d::Array2D<int> arr(10, 10);
-    arr(7, 2) = 43;
+TEST(array2D, Array2D) {
+    int n_rows = 10, n_cols = 12, intial_value = 22;
 
-    EXPECT_EQ(arr.get_cols(), 10);
-    EXPECT_EQ(arr.get_rows(), 10);
-    EXPECT_EQ(arr.get_size(), 100);
+    // Basic operations
+    array2d::Array2D<int> arr(n_rows, n_cols, intial_value);
+
+    EXPECT_EQ(arr.get_rows(), n_rows);
+    EXPECT_EQ(arr.get_cols(), n_cols);
+    EXPECT_EQ(arr.get_size(), n_rows * n_cols);
+
+    // Make sure the initial value works
+    for (int i = 0; i < n_rows; i++) {
+        for (int j = 0; j < n_cols; j++) {
+            EXPECT_EQ(arr(i, j), intial_value);
+        }
+    }
+
+    arr(7, 2) = 43;
     EXPECT_EQ(arr(7, 2), 43);
 }
 
 /**
- * Tests the transpose operation array2d::transpose.
+ * Test array2d::Array2DWithHalo
  */
-TEST(array2d, transpose_operation) {
-    array2d::Array2D<int> arr(4, 4);
-    array2d::Array2D<int> arr_transposed(4, 4);
+TEST(array2D, Array2DWithHalo) {
+    int n_rows = 8, n_cols = 16;
 
-    arr(0, 1) = 2;
-    arr(1, 0) = 5;
-    arr(2, 2) = 8;
-    arr(3, 1) = 13;
-    arr(3, 2) = 15;
+    // Basic operations
+    array2d::Array2DWithHalo<int> arr(n_rows, n_cols);
 
-    array2d::transpose(arr_transposed, arr);
+    EXPECT_EQ(arr.get_rows(), n_rows);
+    EXPECT_EQ(arr.get_cols(), n_cols);
+    EXPECT_EQ(arr.get_size(), n_rows * n_cols);
 
-    // Check if the transpose operation was successful
-    EXPECT_EQ(arr_transposed(1, 0), 2);
-    EXPECT_EQ(arr_transposed(0, 1), 5);
-    EXPECT_EQ(arr_transposed(2, 2), 8);
-    EXPECT_EQ(arr_transposed(1, 3), 13);
-    EXPECT_EQ(arr_transposed(2, 3), 15);
+    arr(7, 2) = 22;
+    EXPECT_EQ(arr(7, 2), 22);
+
+    // Make sure there is a halo
+    for (int i = -1; i < n_rows + 1; i++) {
+        for (int j = -1; j < n_cols + 1; j++) {
+            arr(i, j) = 67;
+            EXPECT_EQ(arr(i, j), 67);
+        }
+    }
 }

@@ -138,7 +138,7 @@ void ConwaysArray2DWithHalo::transition_bitwise(
             int count = neighbour_count(i, j);
 
             (*this)(i, j) =
-                ((is_alive && (count == 2 && count == 3)) || (!is_alive && count == 3));
+                ((is_alive && (count == 2 || count == 3)) || (!is_alive && count == 3));
         }
     }
 }
