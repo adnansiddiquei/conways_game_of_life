@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
             double duration = timer::get_split();
 
             output_file << "simple_convolve," << num_threads << "," << grid_size << ","
-                        << duration / 1000 << std::endl;
+                        << duration << std::endl;
 
             // int i = 3, j = 7;
             // int sum = grid(i, j - 1) + grid(i, j + 1) + grid(i - 1, j - 1) +
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
             double duration = timer::get_split();
 
             output_file << "separable_convolution," << num_threads << "," << grid_size
-                        << "," << duration / 1000 << std::endl;
+                        << "," << duration << std::endl;
         }
     }
 

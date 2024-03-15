@@ -19,7 +19,7 @@ class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
 
     void transition_lookup(array2d::Array2D<int> &neighbour_count);
 
-    // void transition_bitwise(array2d::Array2D<int> &neighbour_count);
+    void transition_bitwise(array2d::Array2D<int> &neighbour_count);
 };
 }  // namespace conway
 

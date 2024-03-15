@@ -113,6 +113,7 @@ void ConwaysArray2DWithHalo::transition_lookup(array2d::Array2D<int> &neighbour_
     std::array<int, 18> lookup_table = {
         0, 0, 0, 1, 0,
         0, 0, 0, 0,  // Dead cells spawn if they have 3 neighbours exactly
+
         0, 0, 1, 1, 0,
         0, 0, 0, 0  // Living cell stays alive with 2 or 3 live neighbors; otherwise,
                     // die
@@ -124,6 +125,20 @@ void ConwaysArray2DWithHalo::transition_lookup(array2d::Array2D<int> &neighbour_
             int is_alive = (*this)(i, j);
 
             (*this)(i, j) = lookup_table[is_alive * 9 + neighbour_count(i, j)];
+        }
+    }
+}
+
+void ConwaysArray2DWithHalo::transition_bitwise(
+    array2d::Array2D<int> &neighbour_count) {
+#pragma omp parallel for collapse(2)
+    for (int i = 0; i < this->n_rows; i++) {
+        for (int j = 0; j < this->n_cols; j++) {
+            int is_alive = (*this)(i, j);
+            int count = neighbour_count(i, j);
+
+            (*this)(i, j) =
+                ((is_alive && (count == 2 && count == 3)) || (!is_alive && count == 3));
         }
     }
 }

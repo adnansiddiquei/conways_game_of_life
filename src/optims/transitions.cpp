@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
         std::vector<int> gs;
         gs.reserve(10);
 
-        for (int i = 1; i < 13; i++) {
+        for (int i = 1; i < 17; i++) {
             gs.push_back(i * 1000);
         }
 
@@ -59,8 +59,8 @@ int main(int argc, char *argv[]) {
             grid.transition_ifs(neighbour_count);
             double duration = timer::get_split();
 
-            output_file << "ifs," << num_threads << "," << grid_size << ","
-                        << duration / 1000 << std::endl;
+            output_file << "ifs," << num_threads << "," << grid_size << "," << duration
+                        << std::endl;
         }
     }
 
@@ -80,7 +80,27 @@ int main(int argc, char *argv[]) {
             double duration = timer::get_split();
 
             output_file << "lookup," << num_threads << "," << grid_size << ","
-                        << duration / 1000 << std::endl;
+                        << duration << std::endl;
+        }
+    }
+
+    for (int num_threads : all_num_threads) {
+        for (int grid_size : grid_sizes) {
+            omp_set_num_threads(num_threads);
+            num_threads = omp_get_max_threads();
+
+            conway::ConwaysArray2DWithHalo grid(grid_size, grid_size);
+            grid.fill_randomly(0.5, -1, true);  // fill all cells, including halo
+
+            array2d::Array2D<int> neighbour_count(grid_size, grid_size, 0);
+            grid.simple_convolve(neighbour_count);  // do the neighbour count
+
+            timer::start_clock();
+            grid.transition_bitwise(neighbour_count);
+            double duration = timer::get_split();
+
+            output_file << "bitwise," << num_threads << "," << grid_size << ","
+                        << duration << std::endl;
         }
     }
 
