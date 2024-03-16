@@ -15,6 +15,10 @@ class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
 
     void separable_convolution(array2d::Array2D<int> &neighbour_count);
 
+    void simple_convolve_inner(array2d::Array2D<int> &neighbour_count);
+
+    void simple_convolve_outer(array2d::Array2D<int> &neighbour_count);
+
     void transition_ifs(array2d::Array2D<int> &neighbour_count);
 
     void transition_lookup(array2d::Array2D<int> &neighbour_count);

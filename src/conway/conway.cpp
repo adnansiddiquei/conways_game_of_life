@@ -66,6 +66,74 @@ void ConwaysArray2DWithHalo::simple_convolve(array2d::Array2D<int> &neighbour_co
     }
 }
 
+void ConwaysArray2DWithHalo::simple_convolve_inner(
+    array2d::Array2D<int> &neighbour_count) {
+#pragma omp parallel for collapse(2)
+    for (int i = 1; i < this->n_rows - 1; i++) {
+        for (int j = 1; j < this->n_cols - 1; j++) {
+            int sum = (*this)(i, j - 1) + (*this)(i, j + 1) + (*this)(i - 1, j - 1) +
+                      (*this)(i - 1, j) + (*this)(i - 1, j + 1) +
+                      (*this)(i + 1, j - 1) + (*this)(i + 1, j) + (*this)(i + 1, j + 1);
+
+            neighbour_count(i, j) = sum;
+        }
+    }
+}
+
+void ConwaysArray2DWithHalo::simple_convolve_outer(
+    array2d::Array2D<int> &neighbour_count) {
+#pragma omp parallel
+    {
+// Top row
+#pragma omp for nowait
+        for (int j = 0; j < n_cols; j++) {
+            int i = 0;
+
+            int sum = (*this)(i, j - 1) + (*this)(i, j + 1) + (*this)(i - 1, j - 1) +
+                      (*this)(i - 1, j) + (*this)(i - 1, j + 1) +
+                      (*this)(i + 1, j - 1) + (*this)(i + 1, j) + (*this)(i + 1, j + 1);
+
+            neighbour_count(i, j) = sum;
+        }
+
+// Right column loop (excluding the first and last cell)
+#pragma omp for nowait
+        for (int i = 1; i < n_rows - 1; i++) {
+            int j = this->n_cols - 1;
+
+            int sum = (*this)(i, j - 1) + (*this)(i, j + 1) + (*this)(i - 1, j - 1) +
+                      (*this)(i - 1, j) + (*this)(i - 1, j + 1) +
+                      (*this)(i + 1, j - 1) + (*this)(i + 1, j) + (*this)(i + 1, j + 1);
+
+            neighbour_count(i, j) = sum;
+        }
+
+// Left column loop (excluding the first and last cell)
+#pragma omp for nowait
+        for (int i = 1; i < n_rows - 1; i++) {
+            int j = 0;
+
+            int sum = (*this)(i, j - 1) + (*this)(i, j + 1) + (*this)(i - 1, j - 1) +
+                      (*this)(i - 1, j) + (*this)(i - 1, j + 1) +
+                      (*this)(i + 1, j - 1) + (*this)(i + 1, j) + (*this)(i + 1, j + 1);
+
+            neighbour_count(i, j) = sum;
+        }
+
+// Bottom row
+#pragma omp for
+        for (int j = 0; j < n_cols; j++) {
+            int i = n_rows - 1;
+
+            int sum = (*this)(i, j - 1) + (*this)(i, j + 1) + (*this)(i - 1, j - 1) +
+                      (*this)(i - 1, j) + (*this)(i - 1, j + 1) +
+                      (*this)(i + 1, j - 1) + (*this)(i + 1, j) + (*this)(i + 1, j + 1);
+
+            neighbour_count(i, j) = sum;
+        }
+    }
+}
+
 void ConwaysArray2DWithHalo::separable_convolution(
     array2d::Array2D<int> &neighbour_count) {
     array2d::Array2DWithHalo<int> horizontal_pass(this->n_rows, this->n_cols);

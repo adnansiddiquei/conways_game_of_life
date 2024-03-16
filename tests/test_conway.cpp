@@ -59,29 +59,37 @@ TEST(conway, ConwaysArray2DWithHalo__fill_randomly) {
 
 /**
  * Test conway::ConwaysArray2DWithHalo.simple_convolve and
- * conway::ConwaysArray2DWithHalo.separable_convolution.
+ * conway::ConwaysArray2DWithHalo.separable_convolution and
+ * conway::ConwaysArray2DWithHalo.simple_convolve_inner() followed by
+ * conway::ConwaysArray2DWithHalo.simple_convolve_outer().
  */
 TEST(conway, ConwaysArray2DWithHalo__convolve) {
     int n_rows = 10, n_cols = 12;
 
     conway::ConwaysArray2DWithHalo arr1(n_rows, n_cols);
     conway::ConwaysArray2DWithHalo arr2(n_rows, n_cols);
+    conway::ConwaysArray2DWithHalo arr3(n_rows, n_cols);
 
     // fill both arrays identically
     arr1.fill_randomly(0.6, 42, true);
     arr2.fill_randomly(0.6, 42, true);
+    arr3.fill_randomly(0.6, 42, true);
 
     // Count the neighbours using the two different convolution methods
     array2d::Array2D<int> neighbour_count1(n_rows, n_cols);
     array2d::Array2D<int> neighbour_count2(n_rows, n_cols);
+    array2d::Array2D<int> neighbour_count3(n_rows, n_cols);
 
-    arr1.simple_convolve(neighbour_count1);
-    arr2.separable_convolution(neighbour_count2);
+    arr1.simple_convolve(neighbour_count1);        // simple convolve
+    arr2.separable_convolution(neighbour_count2);  // separable convolution
+    arr3.simple_convolve_inner(neighbour_count3);  // inner then outer ring
+    arr3.simple_convolve_outer(neighbour_count3);
 
     // Make sure that they both give the same result, as they should
     for (int i = 0; i < n_rows; i++) {
         for (int j = 0; j < n_cols; j++) {
             EXPECT_EQ(neighbour_count1(i, j), neighbour_count2(i, j));
+            EXPECT_EQ(neighbour_count2(i, j), neighbour_count3(i, j));
         }
     }
 }

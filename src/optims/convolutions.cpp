@@ -95,5 +95,29 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Time the separable_convolution
+    for (int num_threads : all_num_threads) {
+        for (int grid_size : grid_sizes) {
+            omp_set_num_threads(num_threads);
+            num_threads = omp_get_max_threads();
+
+            conway::ConwaysArray2DWithHalo grid(grid_size, grid_size);
+            grid.fill_randomly(0.5, -1, true);  // fill all cells, including halo
+
+            array2d::Array2D<int> neighbour_count(grid_size, grid_size, 0);
+
+            timer::start_clock();
+
+            // do the neighbour count
+            grid.simple_convolve_inner(neighbour_count);
+            grid.simple_convolve_outer(neighbour_count);
+
+            double duration = timer::get_split();
+
+            output_file << "simple_inner_outer," << num_threads << "," << grid_size
+                        << "," << duration << std::endl;
+        }
+    }
+
     output_file.close();
 }
