@@ -1,8 +1,3 @@
-/**
- * @file test_array2d.cpp
- * @brief This file contains all the test cases for the Array2D class.
- */
-
 #include <gtest/gtest.h>
 
 #include "array2d.h"

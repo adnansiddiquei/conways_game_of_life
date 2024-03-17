@@ -126,11 +126,44 @@ float parse_arg_float(int &argc, char *argv[], std::string option, bool required
     }
 }
 
+int get_neighbor_rank(MPI_Comm &cartesian2d, const std::array<int, 2> &dims,
+                      int disp_row, int disp_col) {
+    int rank, coords[2], neighbor_rank;
+    MPI_Comm_rank(cartesian2d, &rank);
+    MPI_Cart_coords(cartesian2d, rank, 2, coords);
+
+    // Adjust coordinates to get to the co-ordinates of the desired rank
+    coords[0] = (coords[0] + disp_row + dims[0]) % dims[0];
+    coords[1] = (coords[1] + disp_col + dims[1]) % dims[1];
+
+    // get the rank number of the rank at the desired co-ords, and return
+    MPI_Cart_rank(cartesian2d, coords, &neighbor_rank);
+    return neighbor_rank;
+}
+
+bool DEBUG_MODE = true;
+
+void logger(std::string text) {
+    if (DEBUG_MODE) {
+        std::cout << text << std::endl;
+    }
+}
+
 int main(int argc, char *argv[]) {
     // parse the arguments passed into the script
     int grid_size = parse_arg_int(argc, argv, "--grid-size", true);
     int random_seed = parse_arg_int(argc, argv, "--random-seed", false);
     float probability = parse_arg_float(argc, argv, "--probability", true);
+    std::string decomposition_type = parse_arg(argc, argv, "--mpi-decomp", true);
+
+    // Ensure that a valid decomposition type was specified
+    if (decomposition_type != "column" & decomposition_type != "row" &
+        decomposition_type != "grid") {
+        std::cerr << "Out of range: --mpi-decomp must be one of \"column\", \"row\" or "
+                     "\"grid\"."
+                  << std::endl;
+        std::exit(1);
+    }
 
     // Now we create the MPI ranks and set up the cartesian communicator
     MPI_Init(&argc, &argv);
@@ -140,19 +173,23 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
     // settings for the cartesian2d communicator
-    int dims[2] = {1,
-                   n_ranks};  // column-wise decomposition: 1 row and `n_ranks` columns
-    int periods[2] = {1, 1};  // periodic boundary conditions in both axes
+    std::array<int, 2> dims = [&decomposition_type, &n_ranks]() -> std::array<int, 2> {
+        if (decomposition_type == "column") {
+            return {1, n_ranks};  // column-wise decomposition
+        } else if (decomposition_type == "row") {
+            return {n_ranks, 1};  // row-wise decomposition
+        }
+
+        return {0, 0};
+    }();
+
+    std::array<int, 2> periods = {1, 1};  // periodic boundary conditions in both axes
     int reorder = 1;
 
     // create the cartesian2d communicator
     MPI_Comm cartesian2d;
-    MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, reorder, &cartesian2d);
-
-    // now save down which ranks are in each direction of each rank
-    int left, right, up, down;
-    MPI_Cart_shift(cartesian2d, 1, 1, &left, &right);
-    MPI_Cart_shift(cartesian2d, 0, 1, &down, &up);
+    MPI_Cart_create(MPI_COMM_WORLD, 2, dims.data(), periods.data(), reorder,
+                    &cartesian2d);
 
     // Get the grid size of the decomposed grid
     /**
@@ -160,16 +197,28 @@ int main(int argc, char *argv[]) {
      * This code needs to be edited to handle when the grid might be very small.
      * Maybe in that case just don't even bother doing domain decomposition.
      */
-    std::array<int, 2> decomposed_grid_size = [&rank, &n_ranks,
-                                               &grid_size]() -> std::array<int, 2> {
-        if (rank + 1 != n_ranks) {
-            return {grid_size, grid_size / n_ranks};
-        } else {
-            // for the last rank, the number of columns may be different so the below
-            // line accounts for the fact that grid_size may not be perfectly divisible
-            // by n_ranks
-            return {grid_size, grid_size - (n_ranks - 1) * (grid_size / n_ranks)};
+    std::array<int, 2> decomposed_grid_size =
+        [&rank, &n_ranks, &grid_size, &decomposition_type]() -> std::array<int, 2> {
+        if (decomposition_type == "column") {
+            // Compute number of rows and columns for column-wise decompsition
+            if (rank + 1 != n_ranks) {
+                return {grid_size, grid_size / n_ranks};
+            } else {
+                // for the last rank, the number of columns may be different so the
+                // below line accounts for the fact that grid_size may not be perfectly
+                // divisible by n_ranks
+                return {grid_size, grid_size - (n_ranks - 1) * (grid_size / n_ranks)};
+            }
+        } else if (decomposition_type == "row") {
+            // Compute number of rows and columns for row-wise decompsition
+            if (rank + 1 != n_ranks) {
+                return {grid_size / n_ranks, grid_size};
+            } else {
+                return {grid_size - (n_ranks - 1) * (grid_size / n_ranks), grid_size};
+            }
         }
+
+        return {0, 0};
     }();
 
     int n_rows = decomposed_grid_size[0];
@@ -182,8 +231,13 @@ int main(int argc, char *argv[]) {
     // and random_seed the user inputted on the command line.
     grid.fill_randomly(probability, random_seed);
 
-    // Create a custom MPI type to allow us to send non-contiguos data, i.e., left and
-    // right borders
+    /**
+     * This section is creating a custom MPI type to allow us to send non-contiguous
+     * data in an easy manner.
+     *
+     * I.e., for sending column data to the left and right.
+     */
+
     MPI_Datatype MPI_Column_type;
 
     MPI_Type_vector(n_rows,      // Number of elements in a column
@@ -193,48 +247,18 @@ int main(int argc, char *argv[]) {
 
     MPI_Type_commit(&MPI_Column_type);
 
-    // Send the top border to the bottom halo
-    MPI_Request send_request_top, recv_request_top;
+    /**
+     * Now we start sending the data border cells to the adjacent halos.
+     */
+    std::array<int, 8> neighbour_ranks = grid.get_neighbour_ranks(cartesian2d, dims);
 
-    MPI_Isend(&grid(0, 0), n_cols, MPI_INT, up, 0, cartesian2d, &send_request_top);
-    MPI_Irecv(&grid(n_rows, 0), n_cols, MPI_INT, down, 0, cartesian2d,
-              &recv_request_top);
+    std::array<MPI_Request, 8> send_requests;
+    std::array<MPI_Request, 8> recv_requests;
 
-    // Send the bottom border to the top halo
-    MPI_Request send_request_bottom, recv_request_bottom;
+    grid.MPI_Isend_all(cartesian2d, send_requests, neighbour_ranks, MPI_Column_type);
+    grid.MPI_Irecv_all(cartesian2d, recv_requests, neighbour_ranks, MPI_Column_type);
 
-    MPI_Isend(&grid(n_rows - 1, 0), n_cols, MPI_INT, down, 1, cartesian2d,
-              &send_request_bottom);
-    MPI_Irecv(&grid(-1, 0), n_cols, MPI_INT, up, 1, cartesian2d, &recv_request_bottom);
-
-    // Send the left border to the right halo
-    MPI_Request send_request_left, recv_request_left;
-
-    MPI_Isend(&grid(0, 0), 1, MPI_Column_type, left, 2, cartesian2d,
-              &send_request_left);
-    MPI_Irecv(&grid(0, n_cols), 1, MPI_Column_type, right, 2, cartesian2d,
-              &recv_request_left);
-
-    // Send the right border to the left halo
-    MPI_Request send_request_right, recv_request_right;
-
-    MPI_Isend(&grid(0, n_cols - 1), 1, MPI_Column_type, right, 3, cartesian2d,
-              &send_request_right);
-    MPI_Irecv(&grid(0, -1), 1, MPI_Column_type, left, 3, cartesian2d,
-              &recv_request_right);
-
-    // Now we wait for the messages to all send and be recieved
-    MPI_Wait(&send_request_top, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_top, MPI_STATUS_IGNORE);
-
-    MPI_Wait(&send_request_bottom, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_bottom, MPI_STATUS_IGNORE);
-
-    MPI_Wait(&send_request_left, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_left, MPI_STATUS_IGNORE);
-
-    MPI_Wait(&send_request_right, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_right, MPI_STATUS_IGNORE);
+    grid.MPI_Wait_all(send_requests, recv_requests);
 
     if (rank == 1) {
         std::cout << "Rank: " << rank << std::endl;
@@ -270,6 +294,8 @@ int main(int argc, char *argv[]) {
         }
         std::cout << std::endl;
     }
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     if (rank == 0) {
         // right border

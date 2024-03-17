@@ -1,3 +1,7 @@
+#include <mpi.h>
+
+#include <array>
+
 #include "array2d.h"
 
 #ifndef AS3438_CONWAY_H
@@ -24,6 +28,18 @@ class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
     void transition_lookup(array2d::Array2D<int> &neighbour_count);
 
     void transition_bitwise(array2d::Array2D<int> &neighbour_count);
+
+    void MPI_Isend_all(MPI_Comm &cartesian2d, std::array<MPI_Request, 8> &requests,
+                       std::array<int, 8> &neighbours, MPI_Datatype &MPI_Column_type);
+
+    void MPI_Irecv_all(MPI_Comm &cartesian2d, std::array<MPI_Request, 8> &requests,
+                       std::array<int, 8> &neighbours, MPI_Datatype &MPI_Column_type);
+
+    void MPI_Wait_all(std::array<MPI_Request, 8> &send_reqs,
+                      std::array<MPI_Request, 8> &recv_reqs);
+
+    std::array<int, 8> get_neighbour_ranks(MPI_Comm &cartesian2d,
+                                           std::array<int, 2> &dims);
 };
 }  // namespace conway
 
