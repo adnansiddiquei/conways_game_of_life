@@ -1,5 +1,6 @@
 #include "conway.h"
 
+#include <mpi.h>
 #include <omp.h>
 
 #include <array>
@@ -208,5 +209,74 @@ void ConwaysArray2DWithHalo::transition_bitwise(
             (*this)(i, j) =
                 ((is_alive && (count == 2 || count == 3)) || (!is_alive && count == 3));
         }
+    }
+}
+
+void ConwaysArray2DWithHalo::MPI_Isend_all(MPI_Comm &cartesian2d,
+                                           std::array<MPI_Request, 8> &requests,
+                                           std::array<int, 8> &neighbours,
+                                           MPI_Datatype &MPI_Column_type) {
+    MPI_Isend(&(*this)(0, 0), 1, MPI_INT, neighbours[0], 0, cartesian2d,
+              &requests[0]);  // send top left cell
+
+    MPI_Isend(&(*this)(0, 0), n_cols, MPI_INT, neighbours[1], 1, cartesian2d,
+              &requests[1]);  // send top row
+
+    MPI_Isend(&(*this)(0, n_cols - 1), 1, MPI_INT, neighbours[2], 2, cartesian2d,
+              &requests[2]);  // send top right cell
+
+    MPI_Isend(&(*this)(0, n_cols - 1), 1, MPI_Column_type, neighbours[3], 3,
+              cartesian2d, &requests[3]);  // send right border
+
+    MPI_Isend(&(*this)(n_rows - 1, n_cols - 1), 1, MPI_INT, neighbours[4], 4,
+              cartesian2d, &requests[4]);  // send bottom right cell
+
+    MPI_Isend(&(*this)(n_rows - 1, 0), n_cols, MPI_INT, neighbours[5], 5, cartesian2d,
+              &requests[5]);  // send bottom row
+
+    MPI_Isend(&(*this)(n_rows - 1, 0), 1, MPI_INT, neighbours[6], 6, cartesian2d,
+              &requests[6]);  // send bottom left cell
+
+    MPI_Isend(&(*this)(0, 0), 1, MPI_Column_type, neighbours[7], 7, cartesian2d,
+              &requests[7]);  // send left border
+}
+
+void ConwaysArray2DWithHalo::MPI_Irecv_all(MPI_Comm &cartesian2d,
+                                           std::array<MPI_Request, 8> &requests,
+                                           std::array<int, 8> &neighbours,
+                                           MPI_Datatype &MPI_Column_type) {
+    MPI_Irecv(&(*this)(-1, -1), 1, MPI_INT, neighbours[0], 4, cartesian2d,
+              &requests[0]);  // receive top left halo cell
+
+    MPI_Irecv(&(*this)(-1, 0), n_cols, MPI_INT, neighbours[1], 5, cartesian2d,
+              &requests[1]);  // receive top halo row
+
+    MPI_Irecv(&(*this)(-1, n_cols), 1, MPI_INT, neighbours[2], 6, cartesian2d,
+              &requests[2]);  // receive top right halo cell
+
+    MPI_Irecv(&(*this)(0, n_cols), 1, MPI_Column_type, neighbours[3], 7, cartesian2d,
+              &requests[3]);  // receive right halo column
+
+    MPI_Irecv(&(*this)(n_rows, n_cols), 1, MPI_INT, neighbours[4], 0, cartesian2d,
+              &requests[4]);  // receive bottom right halo cell
+
+    MPI_Irecv(&(*this)(n_rows, 0), n_cols, MPI_INT, neighbours[5], 1, cartesian2d,
+              &requests[5]);  // receive bottom halo row
+
+    MPI_Irecv(&(*this)(n_rows, -1), 1, MPI_INT, neighbours[6], 2, cartesian2d,
+              &requests[6]);  // receive bottom left halo cell
+
+    MPI_Irecv(&(*this)(0, -1), 1, MPI_Column_type, neighbours[7], 3, cartesian2d,
+              &requests[7]);  // receive left halo column
+}
+
+void ConwaysArray2DWithHalo::MPI_Wait_all(std::array<MPI_Request, 8> &send_requests,
+                                          std::array<MPI_Request, 8> &recv_requests) {
+    for (MPI_Request &req : send_requests) {
+        MPI_Wait(&req, MPI_STATUS_IGNORE);
+    }
+
+    for (MPI_Request &req : recv_requests) {
+        MPI_Wait(&req, MPI_STATUS_IGNORE);
     }
 }

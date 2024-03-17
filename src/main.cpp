@@ -276,99 +276,18 @@ int main(int argc, char *argv[]) {
     /**
      * Now we start sending the data border cells to the adjacent halos.
      *
-     * Each send and receive is tagged with an MPI_Request derived from the location
-     * the data is being sent to. E.g., for a send from the top border of the current
-     * rank to the bottom halo of the rank above, we have
-     *     MPI_Request send_request_top, recv_request_top;
      */
 
-    // Top border of current rank -> bottom halo of rank above
-    MPI_Request send_request_top, recv_request_top;
+    std::array<MPI_Request, 8> send_requests;
+    std::array<MPI_Request, 8> recv_requests;
 
-    MPI_Isend(&grid(0, 0), n_cols, MPI_INT, up, 0, cartesian2d, &send_request_top);
-    MPI_Irecv(&grid(n_rows, 0), n_cols, MPI_INT, down, 0, cartesian2d,
-              &recv_request_top);
+    std::array<int, 8> neighbour_ranks = {top_left,     up,   top_right,   right,
+                                          bottom_right, down, bottom_left, left};
 
-    // Bottom border of current rank -> top halo of rank below
-    MPI_Request send_request_bottom, recv_request_bottom;
+    grid.MPI_Isend_all(cartesian2d, send_requests, neighbour_ranks, MPI_Column_type);
+    grid.MPI_Irecv_all(cartesian2d, recv_requests, neighbour_ranks, MPI_Column_type);
 
-    MPI_Isend(&grid(n_rows - 1, 0), n_cols, MPI_INT, down, 1, cartesian2d,
-              &send_request_bottom);
-    MPI_Irecv(&grid(-1, 0), n_cols, MPI_INT, up, 1, cartesian2d, &recv_request_bottom);
-
-    // Left border of current rank -> right halo of rank to the left
-    MPI_Request send_request_left, recv_request_left;
-
-    MPI_Isend(&grid(0, 0), 1, MPI_Column_type, left, 2, cartesian2d,
-              &send_request_left);
-    MPI_Irecv(&grid(0, n_cols), 1, MPI_Column_type, right, 2, cartesian2d,
-              &recv_request_left);
-
-    // Right border of current rank -> left halo of rank to the right
-    MPI_Request send_request_right, recv_request_right;
-
-    MPI_Isend(&grid(0, n_cols - 1), 1, MPI_Column_type, right, 3, cartesian2d,
-              &send_request_right);
-    MPI_Irecv(&grid(0, -1), 1, MPI_Column_type, left, 3, cartesian2d,
-              &recv_request_right);
-
-    // Top left cell of current rank -> bottom right halo of the rank to the top left
-    MPI_Request send_request_top_left, recv_request_top_left;
-
-    MPI_Isend(&grid(0, 0), 1, MPI_INT, top_left, 4, cartesian2d,
-              &send_request_top_left);
-    MPI_Irecv(&grid(n_rows, n_cols), 1, MPI_INT, bottom_right, 4, cartesian2d,
-              &recv_request_top_left);
-
-    // Top right cell of current rank -> bottom left halo of the rank to the top right
-    MPI_Request send_request_top_right, recv_request_top_right;
-
-    MPI_Isend(&grid(0, n_cols - 1), 1, MPI_INT, top_right, 5, cartesian2d,
-              &send_request_top_right);
-    MPI_Irecv(&grid(n_rows, -1), 1, MPI_INT, bottom_left, 5, cartesian2d,
-              &recv_request_top_right);
-
-    // Bottom left cell of current rank -> top right halo of the rank to the bottom left
-    MPI_Request send_request_bottom_left, recv_request_bottom_left;
-
-    MPI_Isend(&grid(n_rows - 1, 0), 1, MPI_INT, bottom_left, 6, cartesian2d,
-              &send_request_bottom_left);
-    MPI_Irecv(&grid(-1, n_cols), 1, MPI_INT, top_right, 6, cartesian2d,
-              &recv_request_bottom_left);
-
-    // Bottom right cell of current rank -> top left halo of the rank to the bottom
-    // right
-    MPI_Request send_request_bottom_right, recv_request_bottom_right;
-
-    MPI_Isend(&grid(n_rows - 1, n_cols - 1), 1, MPI_INT, bottom_right, 7, cartesian2d,
-              &send_request_bottom_right);
-    MPI_Irecv(&grid(-1, -1), 1, MPI_INT, top_left, 7, cartesian2d,
-              &recv_request_bottom_right);
-
-    // Now we wait for the messages to all send and be recieved
-    MPI_Wait(&send_request_top, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_top, MPI_STATUS_IGNORE);
-
-    MPI_Wait(&send_request_bottom, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_bottom, MPI_STATUS_IGNORE);
-
-    MPI_Wait(&send_request_left, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_left, MPI_STATUS_IGNORE);
-
-    MPI_Wait(&send_request_right, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_right, MPI_STATUS_IGNORE);
-
-    MPI_Wait(&send_request_top_left, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_top_left, MPI_STATUS_IGNORE);
-
-    MPI_Wait(&send_request_top_right, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_top_right, MPI_STATUS_IGNORE);
-
-    MPI_Wait(&send_request_bottom_left, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_bottom_left, MPI_STATUS_IGNORE);
-
-    MPI_Wait(&send_request_bottom_right, MPI_STATUS_IGNORE);
-    MPI_Wait(&recv_request_bottom_right, MPI_STATUS_IGNORE);
+    grid.MPI_Wait_all(send_requests, recv_requests);
 
     if (rank == 1) {
         std::cout << "Rank: " << rank << std::endl;
@@ -412,20 +331,6 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < n_rows; i++) {
             std::cout << grid(i, n_cols - 1) << " ";
         }
-    }
-
-    std::cout << std::endl;
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    if (rank == 0) {
-        std::cout << grid(n_rows, n_cols) << " " << bottom_right << std::endl;
-    }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    if (rank == 1) {
-        std::cout << grid(0, 0) << " " << top_left << std::endl;
     }
 
     MPI_Finalize();

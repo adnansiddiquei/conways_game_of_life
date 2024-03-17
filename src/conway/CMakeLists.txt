@@ -8,4 +8,4 @@ target_include_directories(conway_lib
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(conway_lib PUBLIC array2d_lib)
+target_link_libraries(conway_lib PUBLIC array2d_lib PUBLIC MPI::MPI_CXX)
