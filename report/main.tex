@@ -19,7 +19,6 @@
 
 \title{\boldmath C2: Advanced Research Computing - Coursework Assignment}
 
-
 % %simple case: 2 authors, same institution
 \author{Adnan Siddiquei}
 \affiliation{University of Cambridge}
@@ -36,9 +35,23 @@
 \input{sections/introduction}
 \input{sections/prototyping}
 \input{sections/development}
-% \input{sections/validation-unittesting-ci}
-% \input{sections/documentation-packaging-usability}
-% \input{sections/summary}
+\input{sections/profiling}
+
+
+\clearpage
+\appendix
+
+\section{Macbook M1 Pro Chip Specifications}\label{app:macbook-specs}
+The M1 pro chip has \cite{apple-m1}:
+\begin{itemize}
+    \item 10 cores; 8 high-performance cores and 2 high-efficiency cores;
+    \item Performance cores have 192KB + 128KB L1 instruction + data cache;
+    \item Efficiency cores have 128KB + 64KB L1 instruction + data cache;
+    \item L1 line size is 64 bytes;
+    \item The 8 high-performance cores are divided into 2 clusters, each cluster sharing a 12MB L2 cache;
+    \item The 2 high-efficiency cores share a 4MB L2 cache;
+    \item 16GB RAM;
+\end{itemize}
 
 
 
@@ -55,6 +68,14 @@ Srdjan Delić,
 \textit{Branchless programming — Why your CPU will thank you}.
 Available at: \url{https://sdremthix.medium.com/branchless-programming-why-your-cpu-will-thank-you-5f405d97b0c8}
 [Accessed: 17-Mar-2024].
+
+\bibitem{apple-m1}
+Wikipedia,
+\textit{Apple M1}.
+Available at: \url{https://en.wikipedia.org/wiki/Apple_M1}
+[Accessed: 17-Mar-2024].
+
+
 
 \end{thebibliography}
 

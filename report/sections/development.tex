@@ -1,75 +1,27 @@
 %! Author = adnansiddiquei
 %! Date = 08/03/2024
 
-\section{Development, Experimentation, Profiling and Optimisation}\label{sec:development}
-    This section discusses the experimentation and profiling of the different methods discussed in the previous
-    section (Section \eqref{sec:prototyping}).
-    Most of the experimentation was done on a Macbook M1 Pro (10 cores; 16GB RAM; 128 KB of L1 data cache; 192 KB of L1
-    instruction cache; 64 Byte cache line size; 4 MB of L2 cache), which is why the number of OpenMP threads for local
-    experimentation was limited to 10.
-    \subsection{Profiling the Convolution Methods}\label{subsec:prof-conv}
-    \begin{figure}[htb]
-    \centering
-    \includegraphics[width=0.75\textwidth]{./figures/convolutions}
-    \caption{A figure showing the compute time for 4 of the convolution methods for counting neighbours.
-        The colour of the line indicates the method used, and the line style (dotted, dashed, solid) indicates the number
-        OpenMP threads used (1, 5 and 10 respectively).
-        Only 1 MPI rank was used.
-        The x-axis shows the size of one dimension of the square grid.
-        The Simple and Separable methods are as described in \eqref{subsec:domain-decomp} and the SimpleIO method is
-        as described in \eqref{subsec:hiding-comms})
-        The SeparableT method is the Separable method done in 2 horizontal passes with a transpose in between, except
-        the time on the graph is just the compute time to repeast the first horizontal pass twice (i.e, it is the time
-        for the actual SeparableT method minus the tranpose compute time).
-        This was done for simplicity, to assess whether a tranpose operation needed coding.
-        The compute time is averaged over 3 runs.}
-    \label{fig:convolutions}
-    \end{figure}
+\section{Development}\label{sec:development}
+    This section discusses the development of the code and software engineering best practises.
 
-    Fig.\eqref{fig:convolutions} shows the compute time across 4 different convolution methods for counting neighbours
-    and how they scale with \inlinecode{grid_size} and \inlinecode{OMP_NUM_THREADS}.
-    The first observation is that both the simple methods are faster than both of the separable methods, which is
-    at face value, unexpected.
-    Furthermore, there is a negligible difference in speed between the Simple and SimpleIO method which is a positive
-    outcome which means the SimpleIO method is a good candidate for hiding communication overheads, as the vast majority
-    of the computation can be done while waiting for the communication to complete.
-    It is worth noting that all of these methods show diminishing returns as the number of OMP threads increases.
-    \begin{figure}[htb]
-    \centering
-    \includegraphics[width=0.75\textwidth]{./figures/simpleio}
-    \caption{A figure showing how the compute time varies for the SimpleIO method as the number of OMP threads is changed.
-    1 MPI rank was used, and compute time is averaged over 3 runs.}
-    \label{fig:simpleio}
-    \end{figure}
+    CMake was used to manage the entire build process, including the compilation of the code, and running of tests.
+    For formatting, the code was run through \inlinecode{clang-format} automatically on every build to ensure a consistent
+    style.
+    This was done by writing a custom CMake function and tying it into the build process.
 
-    Fig.\eqref{fig:simpleio} shows that as the number of OMP threads increases, the compute time decreases, but with
-    diminishing returns.
-    The jump from 1 to 2 threads yields a 2x increase but jumps following this do not yield speed increases in the same
-    proportion.
-    At about 8 threads, the returns on increasing the number of threads become negligible, which is useful information
-    for optimising the MPI rank to OMP thread ratio.
+    Tests were written using the GoogleTest framework, and tied into the build process using CMake.
+    These tests were run regularly, primarily before creating any merge requests into main.
+    To make writing the tests easy, and to ensure that the tests were comprehensive, the code was written in a modular
+    way, such that the code was easy to test in small isolated units.
 
-    The analysis thus far has yielded the following conclusions: the SimpleIO method is a good candidate for counting
-    neighbours and hiding MPI communication overheads; and 8 may be a reasonable cap on the optimal number of OMP threads.
+    Generally, best practises with regard to Git were followed, such as creating a new branch for every new feature
+    or bug fix, and writing meaningful commit messages.
+    New issues were created for every feature, and branches and merge requests were made against these issues to make
+    work easy to track.
 
-    \subsection{Profiling the Update Methods}\label{subsec:prof-trans}
-        \begin{figure}[htb]
-    \centering
-    \includegraphics[width=0.75\textwidth]{./figures/transitions}
-    \caption{A figure showing the compute time for the 3 the update methods discussed in Section \eqref{subsec:update-grid}.
-        The colour of the line indicates the method used, and the line style (dotted, dashed, solid) indicates the number
-        OpenMP threads used (1, 5 and 10 respectively).
-        Only 1 MPI rank was used.
-        The compute time is averaged over 3 runs.}
-    \label{fig:transitions}
-    \end{figure}
+    Additionally, the code was documented using Doxygen to ensure that the code was easy to understand and maintain.
+    This was particularly important as aspects of the code were quite complex.
 
-    Fig.\eqref{fig:transitions} explores the update methods discussed in Section \eqref{subsec:update-grid}, with a
-    clear conclusion that the lookup method is the fastest, and as expected, the \inlinecode{if} method is the slowest.
-    This makes sense, due to the (effectively) random nature of the simulation, the CPU will have little success
-    in branch predictions, contributing to the slowness of the \inlinecode{if} method down.
-    The frequent lookup in an 18-length array is relatively inexpensive compared to frequent branching.
-
-
-
+    Effective error handling was also implemented, raising descriptive errors where possible, especially against
+    invalid user input.
 
