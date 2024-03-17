@@ -129,14 +129,15 @@ float parse_arg_float(int &argc, char *argv[], std::string option, bool required
 
 int main(int argc, char *argv[]) {
     // parse the arguments passed into the script
-    std::string filepath = parse_arg(argc, argv, "--file", false);
+    std::string input_filepath = parse_arg(argc, argv, "--input", false);
+    std::string output_filepath = parse_arg(argc, argv, "--output", false);
     int grid_size = parse_arg_int(argc, argv, "--grid-size", true);
     int generations = parse_arg_int(argc, argv, "--generations", true);
     int random_seed;
     float probability;
 
     // If a file was not provided then we need the following params
-    if (filepath == "") {
+    if (input_filepath == "") {
         random_seed = parse_arg_int(argc, argv, "--random-seed", false);
         probability = parse_arg_float(argc, argv, "--probability", true);
     }
@@ -206,10 +207,10 @@ int main(int argc, char *argv[]) {
     if (rank == 0) {
         large_grid = new conway::ConwaysArray2DWithHalo(grid_size, grid_size);
 
-        if (filepath == "") {
+        if (input_filepath == "") {
             large_grid->fill_randomly(probability, random_seed);
         } else {
-            conway::read_from_text_file(*large_grid, filepath);
+            conway::read_from_text_file(*large_grid, input_filepath);
         }
     }
 
@@ -302,7 +303,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (rank == 0) {
-        conway::save_to_text_file(*final_grid, "bin/output.txt");
+        conway::save_to_text_file(*final_grid, output_filepath);
         delete final_grid;
     }
 
