@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <random>
 #include <stdexcept>
@@ -126,27 +127,25 @@ float parse_arg_float(int &argc, char *argv[], std::string option, bool required
     }
 }
 
-int get_neighbor_rank(MPI_Comm &cartesian2d, const std::array<int, 2> &dims,
-                      int disp_row, int disp_col) {
-    int rank, coords[2], neighbor_rank;
-    MPI_Comm_rank(cartesian2d, &rank);
-    MPI_Cart_coords(cartesian2d, rank, 2, coords);
+void save_to_text_file(array2d::Array2D<int> &arr, std::string filename) {
+    std::ofstream file(filename);  // Open the file for writing
 
-    // Adjust coordinates to get to the co-ordinates of the desired rank
-    coords[0] = (coords[0] + disp_row + dims[0]) % dims[0];
-    coords[1] = (coords[1] + disp_col + dims[1]) % dims[1];
-
-    // get the rank number of the rank at the desired co-ords, and return
-    MPI_Cart_rank(cartesian2d, coords, &neighbor_rank);
-    return neighbor_rank;
-}
-
-bool DEBUG_MODE = true;
-
-void logger(std::string text) {
-    if (DEBUG_MODE) {
-        std::cout << text << std::endl;
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filename << std::endl;
+        return;
     }
+
+    int n_rows = arr.get_rows();
+    int n_cols = arr.get_cols();
+
+    for (int i = 0; i < n_rows; i++) {
+        for (int j = 0; j < n_cols; j++) {
+            file << std::to_string(arr(i, j));  // Write the element
+        }
+        file << "\n";  // End of row
+    }
+
+    file.close();  // Close the file
 }
 
 int main(int argc, char *argv[]) {
@@ -155,6 +154,7 @@ int main(int argc, char *argv[]) {
     int random_seed = parse_arg_int(argc, argv, "--random-seed", false);
     float probability = parse_arg_float(argc, argv, "--probability", true);
     std::string decomposition_type = parse_arg(argc, argv, "--mpi-decomp", true);
+    int generations = parse_arg_int(argc, argv, "--generations", true);
 
     // Ensure that a valid decomposition type was specified
     if (decomposition_type != "column" & decomposition_type != "row" &
@@ -162,6 +162,12 @@ int main(int argc, char *argv[]) {
         std::cerr << "Out of range: --mpi-decomp must be one of \"column\", \"row\" or "
                      "\"grid\"."
                   << std::endl;
+        std::exit(1);
+    }
+
+    // Ensure a positive and non-zero number of generations was passed in
+    if (generations < 1) {
+        std::cerr << "Out of range: --generations must be larger than 0." << std::endl;
         std::exit(1);
     }
 
@@ -192,11 +198,7 @@ int main(int argc, char *argv[]) {
                     &cartesian2d);
 
     // Get the grid size of the decomposed grid
-    /**
-     * TODO: In the case that grid_size / n_ranks == 0.
-     * This code needs to be edited to handle when the grid might be very small.
-     * Maybe in that case just don't even bother doing domain decomposition.
-     */
+    // TODO: What happens when the grid size is really small?
     std::array<int, 2> decomposed_grid_size =
         conway::get_decomposed_grid_size(rank, n_ranks, grid_size, decomposition_type);
 
@@ -205,18 +207,46 @@ int main(int argc, char *argv[]) {
 
     // Create the 2D array that will represent the decomposed domain
     conway::ConwaysArray2DWithHalo grid(n_rows, n_cols);
+    conway::ConwaysArray2DWithHalo *large_grid;
 
-    // Fill the grid (excluding the halo) with 1s and 0s according to the probability
-    // and random_seed the user inputted on the command line.
-    grid.fill_randomly(probability, random_seed);
+    int rows_per_rank = grid_size / n_ranks;
+    int extra_rows = grid_size % n_ranks;
+    int rows_for_last_rank = rows_per_rank + extra_rows;
 
-    /**
-     * This section is creating a custom MPI type to allow us to send non-contiguous
-     * data in an easy manner.
-     *
-     * I.e., for sending column data to the left and right.
-     */
+    if (rank == 0) {
+        large_grid = new conway::ConwaysArray2DWithHalo(grid_size, grid_size);
 
+        // Fill the grid (excluding the halo) with 1s and 0s according to the
+        // probability and random_seed the user inputted on the command line.
+        large_grid->fill_randomly(probability, random_seed);
+    }
+
+    MPI_Datatype MPI_Block_type_1;
+    MPI_Type_vector(rows_per_rank, n_cols, n_cols + 2, MPI_INT, &MPI_Block_type_1);
+    MPI_Type_commit(&MPI_Block_type_1);
+
+    MPI_Datatype MPI_Block_type_2;
+    MPI_Type_vector(rows_for_last_rank, n_cols, n_cols + 2, MPI_INT, &MPI_Block_type_2);
+    MPI_Type_commit(&MPI_Block_type_2);
+
+    if (rank == 0) {
+        MPI_Request null_req;
+
+        for (int i = 0; i < n_ranks; i++) {
+            MPI_Isend(&(*large_grid)(i * rows_per_rank, 0), 1,
+                      i != n_ranks - 1 ? MPI_Block_type_1 : MPI_Block_type_2, i, i,
+                      cartesian2d, &null_req);
+        }
+    }
+
+    MPI_Recv(&grid(0, 0), 1, rank != n_ranks - 1 ? MPI_Block_type_1 : MPI_Block_type_2,
+             0, rank, cartesian2d, MPI_STATUS_IGNORE);
+
+    if (rank == 0) {
+        delete large_grid;
+    }
+
+    // Create column data type so we can easily send and receive column data
     MPI_Datatype MPI_Column_type;
 
     MPI_Type_vector(n_rows,      // Number of elements in a column
@@ -226,18 +256,68 @@ int main(int argc, char *argv[]) {
 
     MPI_Type_commit(&MPI_Column_type);
 
-    /**
-     * Now we start sending the data border cells to the adjacent halos.
-     */
+    // get the ranks of the neighbours
     std::array<int, 8> neighbour_ranks = grid.get_neighbour_ranks(cartesian2d, dims);
 
-    std::array<MPI_Request, 8> send_requests;
-    std::array<MPI_Request, 8> recv_requests;
+    // Evolve the grid for the specified number of generations
+    for (int i = 0; i < generations; i++) {
+        std::array<MPI_Request, 8> send_requests;
+        std::array<MPI_Request, 8> recv_requests;
 
-    grid.MPI_Isend_all(cartesian2d, send_requests, neighbour_ranks, MPI_Column_type);
-    grid.MPI_Irecv_all(cartesian2d, recv_requests, neighbour_ranks, MPI_Column_type);
+        // send and receieve all comms, non-blocking
+        grid.MPI_Isend_all(cartesian2d, send_requests, neighbour_ranks,
+                           MPI_Column_type);
+        grid.MPI_Irecv_all(cartesian2d, recv_requests, neighbour_ranks,
+                           MPI_Column_type);
 
-    grid.MPI_Wait_all(send_requests, recv_requests);
+        // Do the neighbour count on the inner portion while we wait for the comms to
+        // send
+        array2d::Array2D<int> neighbour_count(n_rows, n_cols);
+        grid.simple_convolve_inner(neighbour_count);
+
+        // Wait for the halos to arrive
+        grid.MPI_Wait_all(send_requests, recv_requests);
+
+        // Count the outer neighbours
+        grid.simple_convolve_outer(neighbour_count);
+
+        // Transition to the next state
+        grid.transition_lookup(neighbour_count);
+    }
+
+    array2d::Array2D<int> *final_grid;
+
+    if (rank == 0) {
+        final_grid = new array2d::Array2D<int>(grid_size, grid_size);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    MPI_Request null_req;
+
+    for (int i = 0; i < n_ranks; i++) {
+        MPI_Isend(&grid(0, 0), 1,
+                  i != n_ranks - 1 ? MPI_Block_type_1 : MPI_Block_type_2, 0, i,
+                  cartesian2d, &null_req);
+    }
+
+    if (rank == 0) {
+        for (int i = 0; i < n_ranks; i++) {
+            MPI_Recv(&(*final_grid)(i * rows_per_rank, 0), 1,
+                     i != n_ranks - 1 ? MPI_Block_type_1 : MPI_Block_type_2, i, i,
+                     cartesian2d, MPI_STATUS_IGNORE);
+        }
+    }
+
+    if (rank == 0) {
+        save_to_text_file(*final_grid, "bin/output.txt");
+        delete final_grid;
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Type_free(&MPI_Block_type_1);
+    MPI_Type_free(&MPI_Block_type_2);
+    MPI_Type_free(&MPI_Column_type);
 
     MPI_Finalize();
 
