@@ -1,6 +1,7 @@
 #include <mpi.h>
 
 #include <array>
+#include <fstream>
 #include <string>
 
 #include "array2d.h"
@@ -45,6 +46,12 @@ class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
 
 std::array<int, 2> get_decomposed_grid_size(int rank, int n_ranks, int grid_size,
                                             std::string decomposition_type);
+
+void read_from_text_file(conway::ConwaysArray2DWithHalo &arr, std::string filename);
+
+void save_to_text_file(array2d::Array2D<int> &arr, std::string filename);
+
+void save_to_text_file(conway::ConwaysArray2DWithHalo &arr, std::string filename);
 
 }  // namespace conway
 
