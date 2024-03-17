@@ -198,28 +198,7 @@ int main(int argc, char *argv[]) {
      * Maybe in that case just don't even bother doing domain decomposition.
      */
     std::array<int, 2> decomposed_grid_size =
-        [&rank, &n_ranks, &grid_size, &decomposition_type]() -> std::array<int, 2> {
-        if (decomposition_type == "column") {
-            // Compute number of rows and columns for column-wise decompsition
-            if (rank + 1 != n_ranks) {
-                return {grid_size, grid_size / n_ranks};
-            } else {
-                // for the last rank, the number of columns may be different so the
-                // below line accounts for the fact that grid_size may not be perfectly
-                // divisible by n_ranks
-                return {grid_size, grid_size - (n_ranks - 1) * (grid_size / n_ranks)};
-            }
-        } else if (decomposition_type == "row") {
-            // Compute number of rows and columns for row-wise decompsition
-            if (rank + 1 != n_ranks) {
-                return {grid_size / n_ranks, grid_size};
-            } else {
-                return {grid_size - (n_ranks - 1) * (grid_size / n_ranks), grid_size};
-            }
-        }
-
-        return {0, 0};
-    }();
+        conway::get_decomposed_grid_size(rank, n_ranks, grid_size, decomposition_type);
 
     int n_rows = decomposed_grid_size[0];
     int n_cols = decomposed_grid_size[1];
@@ -259,50 +238,6 @@ int main(int argc, char *argv[]) {
     grid.MPI_Irecv_all(cartesian2d, recv_requests, neighbour_ranks, MPI_Column_type);
 
     grid.MPI_Wait_all(send_requests, recv_requests);
-
-    if (rank == 1) {
-        std::cout << "Rank: " << rank << std::endl;
-        std::cout << "n_rows: " << n_rows << " n_cols: " << n_cols << std::endl;
-
-        // print out bottom border
-        for (int i = 0; i < n_cols; i++) {
-            std::cout << grid(n_rows - 1, i) << " ";
-        }
-
-        std::cout << std::endl;
-        // top halo
-        for (int i = 0; i < n_cols; i++) {
-            std::cout << grid(-1, i) << " ";
-        }
-
-        std::cout << std::endl << std::endl;
-        // top border
-        for (int i = 0; i < n_cols; i++) {
-            std::cout << grid(0, i) << " ";
-        }
-
-        std::cout << std::endl;
-        // bottom halo
-        for (int i = 0; i < n_cols; i++) {
-            std::cout << grid(n_rows, i) << " ";
-        }
-
-        std::cout << std::endl << std::endl;
-        // left halo
-        for (int i = 0; i < n_rows; i++) {
-            std::cout << grid(i, -1) << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    if (rank == 0) {
-        // right border
-        for (int i = 0; i < n_rows; i++) {
-            std::cout << grid(i, n_cols - 1) << " ";
-        }
-    }
 
     MPI_Finalize();
 

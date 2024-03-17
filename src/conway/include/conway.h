@@ -1,6 +1,7 @@
 #include <mpi.h>
 
 #include <array>
+#include <string>
 
 #include "array2d.h"
 
@@ -41,6 +42,10 @@ class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
     std::array<int, 8> get_neighbour_ranks(MPI_Comm &cartesian2d,
                                            std::array<int, 2> &dims);
 };
+
+std::array<int, 2> get_decomposed_grid_size(int rank, int n_ranks, int grid_size,
+                                            std::string decomposition_type);
+
 }  // namespace conway
 
 #endif  // AS3438_CONWAY_H

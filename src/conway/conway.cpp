@@ -4,7 +4,9 @@
 #include <omp.h>
 
 #include <array>
+#include <iostream>
 #include <random>
+#include <string>
 
 #include "array2d.h"
 
@@ -311,4 +313,32 @@ std::array<int, 8> ConwaysArray2DWithHalo::get_neighbour_ranks(
     };
 
     return neighbour_ranks;
+}
+
+std::array<int, 2> conway::get_decomposed_grid_size(int rank, int n_ranks,
+                                                    int grid_size,
+                                                    std::string decomposition_type) {
+    if (decomposition_type == "column") {
+        // Compute number of rows and columns for column-wise decompsition
+        if (rank + 1 != n_ranks) {
+            return {grid_size, grid_size / n_ranks};
+        } else {
+            // for the last rank, the number of columns may be different so the
+            // below line accounts for the fact that grid_size may not be perfectly
+            // divisible by n_ranks
+            return {grid_size, grid_size - (n_ranks - 1) * (grid_size / n_ranks)};
+        }
+    } else if (decomposition_type == "row") {
+        // Compute number of rows and columns for row-wise decompsition
+        if (rank + 1 != n_ranks) {
+            return {grid_size / n_ranks, grid_size};
+        } else {
+            return {grid_size - (n_ranks - 1) * (grid_size / n_ranks), grid_size};
+        }
+    } else {
+        std::cerr
+            << "Out of range: decomposition_type must be one of \"column\" or \"row\"."
+            << std::endl;
+        std::exit(1);
+    }
 }
