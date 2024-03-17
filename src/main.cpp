@@ -155,9 +155,9 @@ int main(int argc, char *argv[]) {
     //     std::exit(1);
     // }
 
-    // Ensure a positive and non-zero number of generations was passed in
-    if (generations < 1) {
-        std::cerr << "Out of range: --generations must be larger than 0." << std::endl;
+    // Ensure a non-negative number of generations was passed in
+    if (generations < 0) {
+        std::cerr << "Out of range: --generations must non-negative." << std::endl;
         std::exit(1);
     }
 
@@ -277,10 +277,10 @@ int main(int argc, char *argv[]) {
         grid.transition_lookup(neighbour_count);
     }
 
-    array2d::Array2D<int> *final_grid;
+    conway::ConwaysArray2DWithHalo *final_grid;
 
     if (rank == 0) {
-        final_grid = new array2d::Array2D<int>(grid_size, grid_size);
+        final_grid = new conway::ConwaysArray2DWithHalo(grid_size, grid_size);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
