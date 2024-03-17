@@ -23,6 +23,7 @@ clean :
 all : build release
 
 test :
+	mpirun -np 4 ./bin/test_mpi_comms
 	ctest --test-dir build --output-on-failure
 
 clean-docs :

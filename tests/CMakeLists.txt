@@ -29,6 +29,15 @@ target_link_libraries(test_conway
     GTest::gtest_main
 )
 
+# Add tests for test_mpi_comms
+add_executable(test_mpi_comms test_mpi_comms.cpp)
+ClangFormat(test_mpi_comms .)
+
+target_link_libraries(test_mpi_comms
+    PRIVATE conway_lib
+    GTest::gtest_main
+)
+
 include(GoogleTest)
 
 gtest_discover_tests(test_array2d)
