@@ -3,6 +3,7 @@
 
 #include <array>
 
+#include "array2d.h"
 #include "conway.h"
 
 class MPICommsTest : public ::testing::Test {
@@ -72,6 +73,25 @@ class MPICommsTest : public ::testing::Test {
         ASSERT_EQ(grid(-1, n_cols), (neighbour_ranks[2] + 1) * 7);
         ASSERT_EQ(grid(10, n_cols), (neighbour_ranks[3] + 1) * 8);
     }
+
+    void SetUpGlider(conway::ConwaysArray2DWithHalo &grid) {
+        grid(0, 1) = 1;
+        grid(1, 2) = 1;
+        grid(2, 0) = 1;
+        grid(2, 1) = 1;
+        grid(2, 2) = 1;
+    }
+
+    void SetAllCellsToZero(conway::ConwaysArray2DWithHalo &grid) {
+        int n_rows = grid.get_rows();
+        int n_cols = grid.get_cols();
+
+        for (int i = -1; i < n_rows + 1; i++) {
+            for (int j = -1; j < n_cols + 1; j++) {
+                grid(i, j) = 0;
+            }
+        }
+    }
 };
 
 TEST_F(MPICommsTest, row_wise_decomposition) {
@@ -112,4 +132,140 @@ TEST_F(MPICommsTest, column_wise_decomposition) {
         neighbour_ranks);  // send, recv and wait until all the data has been received
     TestHaloValueHaveReceivedCorrectly(grid,
                                        neighbour_ranks);  // test data was received okay
+}
+
+TEST_F(MPICommsTest, glider_test_row_wise) {
+    int rank, n_ranks;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+
+    int grid_size = 135;
+
+    std::array<int, 2> decomposed_grid_size =
+        conway::get_decomposed_grid_size(rank, n_ranks, grid_size, "row");
+    int n_rows = decomposed_grid_size[0];
+    int n_cols = decomposed_grid_size[1];
+
+    std::array<int, 2> dims = {6, 1};  // row-wise decompisition
+    conway::ConwaysArray2DWithHalo grid(n_rows, n_cols);
+    MPI_Comm cartesian2d = SetUpCartesianCommunicator(n_rows, n_cols, dims);
+    std::array<int, 8> neighbour_ranks = grid.get_neighbour_ranks(cartesian2d, dims);
+
+    SetAllCellsToZero(grid);  // Set everything to 0
+
+    // Set up a glider on the top left of the whole simulation
+    if (rank == 0) {
+        SetUpGlider(grid);
+    }
+
+    // it takes (grid_size - 3) * 4 generations for a glider to go diagonally by
+    // grid_size amount. Evolve the grid by this amount.
+    for (int i = 0; i < (grid_size - 3) * 4; i++) {
+        SendRecvWaitAll(grid, cartesian2d, neighbour_ranks);
+
+        array2d::Array2D<int> neighbour_count(n_rows, n_cols);
+
+        grid.simple_convolve_inner(neighbour_count);
+        grid.simple_convolve_outer(neighbour_count);
+
+        grid.transition_lookup(neighbour_count);
+    }
+
+    // Assertions:
+    if (rank != n_ranks - 1) {
+        // Make sure every cell is dead
+        for (int i = 0; i < n_rows; i++) {
+            for (int j = 0; j < n_cols; j++) {
+                ASSERT_EQ(grid(i, j), 0);
+            }
+        }
+    } else {
+        // And sure the glider is at the bottom right corner
+        ASSERT_EQ(grid(n_rows - 1, n_cols - 1), 1);
+        ASSERT_EQ(grid(n_rows - 1, n_cols - 2), 1);
+        ASSERT_EQ(grid(n_rows - 1, n_cols - 3), 1);
+        ASSERT_EQ(grid(n_rows - 2, n_cols - 1), 1);
+        ASSERT_EQ(grid(n_rows - 3, n_cols - 2), 1);
+
+        // Delete the glider and also make sure everything else in this rank is dead
+        grid(n_rows - 1, n_cols - 1) = 0;
+        grid(n_rows - 1, n_cols - 2) = 0;
+        grid(n_rows - 1, n_cols - 3) = 0;
+        grid(n_rows - 2, n_cols - 1) = 0;
+        grid(n_rows - 3, n_cols - 2) = 0;
+
+        for (int i = 0; i < n_rows; i++) {
+            for (int j = 0; j < n_cols; j++) {
+                ASSERT_EQ(grid(i, j), 0);
+            }
+        }
+    }
+}
+
+TEST_F(MPICommsTest, glider_test_column_wise) {
+    int rank, n_ranks;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+
+    int grid_size = 104;
+
+    std::array<int, 2> decomposed_grid_size =
+        conway::get_decomposed_grid_size(rank, n_ranks, grid_size, "column");
+    int n_rows = decomposed_grid_size[0];
+    int n_cols = decomposed_grid_size[1];
+
+    std::array<int, 2> dims = {1, 6};  // column-wise decompisition
+    conway::ConwaysArray2DWithHalo grid(n_rows, n_cols);
+    MPI_Comm cartesian2d = SetUpCartesianCommunicator(n_rows, n_cols, dims);
+    std::array<int, 8> neighbour_ranks = grid.get_neighbour_ranks(cartesian2d, dims);
+
+    SetAllCellsToZero(grid);  // Set everything to 0
+
+    // Set up a glider on the top left of the whole simulation
+    if (rank == 0) {
+        SetUpGlider(grid);
+    }
+
+    // it takes (grid_size - 3) * 4 generations for a glider to go diagonally by
+    // grid_size amount. Evolve the grid by this amount.
+    for (int i = 0; i < (grid_size - 3) * 4; i++) {
+        SendRecvWaitAll(grid, cartesian2d, neighbour_ranks);
+
+        array2d::Array2D<int> neighbour_count(n_rows, n_cols);
+
+        grid.simple_convolve_inner(neighbour_count);
+        grid.simple_convolve_outer(neighbour_count);
+
+        grid.transition_lookup(neighbour_count);
+    }
+
+    // Assertions:
+    if (rank != n_ranks - 1) {
+        // Make sure every cell is dead
+        for (int i = 0; i < n_rows; i++) {
+            for (int j = 0; j < n_cols; j++) {
+                ASSERT_EQ(grid(i, j), 0);
+            }
+        }
+    } else {
+        // And sure the glider is at the bottom right corner
+        ASSERT_EQ(grid(n_rows - 1, n_cols - 1), 1);
+        ASSERT_EQ(grid(n_rows - 1, n_cols - 2), 1);
+        ASSERT_EQ(grid(n_rows - 1, n_cols - 3), 1);
+        ASSERT_EQ(grid(n_rows - 2, n_cols - 1), 1);
+        ASSERT_EQ(grid(n_rows - 3, n_cols - 2), 1);
+
+        // Delete the glider and also make sure everything else in this rank is dead
+        grid(n_rows - 1, n_cols - 1) = 0;
+        grid(n_rows - 1, n_cols - 2) = 0;
+        grid(n_rows - 1, n_cols - 3) = 0;
+        grid(n_rows - 2, n_cols - 1) = 0;
+        grid(n_rows - 3, n_cols - 2) = 0;
+
+        for (int i = 0; i < n_rows; i++) {
+            for (int j = 0; j < n_cols; j++) {
+                ASSERT_EQ(grid(i, j), 0);
+            }
+        }
+    }
 }
