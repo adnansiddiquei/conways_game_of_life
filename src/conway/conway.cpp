@@ -273,11 +273,13 @@ void ConwaysArray2DWithHalo::MPI_Irecv_all(MPI_Comm &cartesian2d,
 void ConwaysArray2DWithHalo::MPI_Wait_all(std::array<MPI_Request, 8> &send_requests,
                                           std::array<MPI_Request, 8> &recv_requests) {
     for (MPI_Request &req : send_requests) {
-        MPI_Wait(&req, MPI_STATUS_IGNORE);
+        MPI_Status status;
+        MPI_Wait(&req, &status);
     }
 
     for (MPI_Request &req : recv_requests) {
-        MPI_Wait(&req, MPI_STATUS_IGNORE);
+        MPI_Status status;
+        MPI_Wait(&req, &status);
     }
 }
 
@@ -287,30 +289,26 @@ std::array<int, 8> ConwaysArray2DWithHalo::get_neighbour_ranks(
     MPI_Comm_rank(cartesian2d, &rank);
     MPI_Cart_coords(cartesian2d, rank, 2, coords);
 
-    auto get_rank = [coords, &dims, &cartesian2d](int disp_row, int disp_col) -> int {
-        int neighbor_coords[2] = {coords[0], coords[1]};
+    auto get_rank = [&cartesian2d, &dims](
+                        const int coords[2],
+                        const std::array<int, 2> &displacement) -> int {
+        int neighbor_coords[2] = {(coords[0] + displacement[0]) % dims[0],
+                                  (coords[1] + displacement[1]) % dims[1]};
         int neighbor_rank;
-
-        // Adjust coordinates to get to the co-ordinates of the desired rank
-        neighbor_coords[0] = (neighbor_coords[0] + disp_row + dims[0]) % dims[0];
-        neighbor_coords[1] = (neighbor_coords[1] + disp_col + dims[1]) % dims[1];
-
-        // get the rank number of the rank at the desired co-ords, and return
         MPI_Cart_rank(cartesian2d, neighbor_coords, &neighbor_rank);
         return neighbor_rank;
     };
 
-    int left = get_rank(0, -1);
-    int right = get_rank(0, 1);
-    int up = get_rank(-1, 0);
-    int down = get_rank(1, 0);
-    int top_left = get_rank(-1, -1);
-    int top_right = get_rank(-1, 1);
-    int bottom_left = get_rank(1, -1);
-    int bottom_right = get_rank(1, 1);
-
-    std::array<int, 8> neighbour_ranks = {top_left,     up,   top_right,   right,
-                                          bottom_right, down, bottom_left, left};
+    std::array<int, 8> neighbour_ranks = {
+        get_rank(coords, {-1, -1}),  // top_left
+        get_rank(coords, {-1, 0}),   // up
+        get_rank(coords, {-1, 1}),   // top_right
+        get_rank(coords, {0, 1}),    // right
+        get_rank(coords, {1, 1}),    // bottom_right
+        get_rank(coords, {1, 0}),    // down
+        get_rank(coords, {1, -1}),   // bottom_left
+        get_rank(coords, {0, -1})    // left
+    };
 
     return neighbour_ranks;
 }

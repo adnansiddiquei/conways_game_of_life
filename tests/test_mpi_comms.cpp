@@ -79,7 +79,7 @@ TEST_F(MPICommsTest, row_wise_decomposition) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
-    std::array<int, 2> dims = {4, 1};  // Testing a row-wise decompisition
+    std::array<int, 2> dims = {6, 1};  // Testing a row-wise decompisition
     int n_rows = 20, n_cols = 100;
     conway::ConwaysArray2DWithHalo grid(n_rows, n_cols);
     grid.fill_randomly(0.7, -1, true);  // Initialize the grid with some data
@@ -99,7 +99,7 @@ TEST_F(MPICommsTest, column_wise_decomposition) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
 
-    std::array<int, 2> dims = {1, 4};  // Testing a column-wise decompisition
+    std::array<int, 2> dims = {1, 6};  // Testing a column-wise decompisition
     int n_rows = 20, n_cols = 100;
     conway::ConwaysArray2DWithHalo grid(n_rows, n_cols);
     grid.fill_randomly(0.7, -1, true);  // Initialize the grid with some data
