@@ -232,32 +232,6 @@ int main(int argc, char *argv[]) {
     grid.fill_randomly(probability, random_seed);
 
     /**
-     * This section below is simply calculating which rank is in each direction
-     * of the current rank.
-     *
-     * `left` will be an int signifying the rank that is to the left of the current
-     * rank. `top_left` will signify the rank that it one to the left and one up.
-     *
-     */
-
-    int left, right, up, down, top_left, top_right, bottom_left, bottom_right;
-
-    left = get_neighbor_rank(cartesian2d, dims, 0, -1);
-    right = get_neighbor_rank(cartesian2d, dims, 0, 1);
-    up = get_neighbor_rank(cartesian2d, dims, -1, 0);
-    down = get_neighbor_rank(cartesian2d, dims, 1, 0);
-    top_left = get_neighbor_rank(cartesian2d, dims, -1, -1);
-    top_right = get_neighbor_rank(cartesian2d, dims, -1, 1);
-    bottom_left = get_neighbor_rank(cartesian2d, dims, 1, -1);
-    bottom_right = get_neighbor_rank(cartesian2d, dims, 1, 1);
-
-    logger("Rank " + std::to_string(rank) + ": " + std::to_string(n_rows) + " x " +
-           std::to_string(n_cols) + ". " + std::to_string(left) +
-           std::to_string(right) + std::to_string(up) + std::to_string(down) +
-           std::to_string(top_left) + std::to_string(top_right) +
-           std::to_string(bottom_left) + std::to_string(bottom_right));
-
-    /**
      * This section is creating a custom MPI type to allow us to send non-contiguous
      * data in an easy manner.
      *
@@ -275,14 +249,11 @@ int main(int argc, char *argv[]) {
 
     /**
      * Now we start sending the data border cells to the adjacent halos.
-     *
      */
+    std::array<int, 8> neighbour_ranks = grid.get_neighbour_ranks(cartesian2d, dims);
 
     std::array<MPI_Request, 8> send_requests;
     std::array<MPI_Request, 8> recv_requests;
-
-    std::array<int, 8> neighbour_ranks = {top_left,     up,   top_right,   right,
-                                          bottom_right, down, bottom_left, left};
 
     grid.MPI_Isend_all(cartesian2d, send_requests, neighbour_ranks, MPI_Column_type);
     grid.MPI_Irecv_all(cartesian2d, recv_requests, neighbour_ranks, MPI_Column_type);

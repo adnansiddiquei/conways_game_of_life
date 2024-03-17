@@ -37,6 +37,9 @@ class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
 
     void MPI_Wait_all(std::array<MPI_Request, 8> &send_reqs,
                       std::array<MPI_Request, 8> &recv_reqs);
+
+    std::array<int, 8> get_neighbour_ranks(MPI_Comm &cartesian2d,
+                                           std::array<int, 2> &dims);
 };
 }  // namespace conway
 
