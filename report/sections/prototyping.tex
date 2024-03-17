@@ -6,19 +6,32 @@
     \centering
     \includegraphics[width=0.9\textwidth]{./figures/high-level-flowchart}
     \caption{A high-level flow chart depicting the algorithm. The key points for efficiency considerations
-    are highlighted in orange, the considerations are discussed in the main text.}
+    are highlighted in red, the considerations are discussed in the main text.}
     \label{fig:high-level-flowchart}
     \end{figure}
 
     Fig.\eqref{fig:high-level-flowchart} shows the high-level algorithm being used to simulate Conway's
     Game of Life.
-    The key points of consideration for efficiency are highlighted in orange.
-    It is also worth noting that the rest of this section assumes that the grid is stored as a 1D array in row-major order.
+    The key points of consideration with regard to performance are highlighted in red.
+    There are 3 domain decomposition methods available (column, row and block decomposition) as well as multiple
+    ways to count neighbours and update grid states.
+    As indicated in Fig.\eqref{fig:high-level-flowchart}, communication overheads between MPI ranks can be hidden
+    behind computation by using non-blocking communication and counting whichever neighbours are available at the time.
+    Likewise, the actual method of counting neighbours and updating the grid can be done in a variety of ways, each with
+    their own merits.
+    All these considerations are discussed thoroughly in this section, and then they are investigated in the next
+    section.
 
+    \subsection{Domain Decomposition and Neighbour Counting Algorithm}\label{subsec:domain-decomp}
     Domain decomposition can be done by either strips or blocks.
     Strips has the advantage that it is simpler to implement but will have more memory needing to be passed between
     boundaries, with the opposite being true for blocks.
-    In the case of the neighbour counting algorithm, there are a couple of possible implementations.
+    Therefore, the choice of domain decomposition will need to be tested to see which is more efficient as the data
+    size and number of MPI ranks increases.
+    However, the overheads of communication can be effectively nullified if the communication is hidden behind computation,
+    as such, this also needs to be explored to see what proportion of the communication can be hidden.
+
+    The neighbour counting algorithm has 2 possible implementations, a simple convolution and a separable kernel.
     \begin{itemize}
         \item \textbf{Simple convolution.} Loop through each cell, and count the number of neighbours.
             This is equivalent to a 3x3 convolution with the below kernel.
@@ -45,37 +58,55 @@
             After another ${N^{2}}$ addition operations, to correct for replacing the central 0 with a 1, the total number of
             operations becomes $5N^{2}$.
             Therefore, the separable kernel method yields a theoretical speedup of $8/5 \approx 1.6$.
+            However, due to strided memory access on the vertical pass, the speedup will be less than this.
+            Although, the vertical pass can be made more efficient by transposing the grid and making the data contiguous,
+            it will need to be investigated whether the additional overhead of transposing the grid yields any speedup.
     \end{itemize}
-    The simple convolution method introduces the issue of strided memory access when counting the 6 neighbours that are
-    not horizontally adjacent to the current cell, as illustrated in Fig.\eqref{fig:neighbour-illustration}.
 
-    \begin{figure}[htb]
-    \centering
-    \includegraphics[width=0.35\textwidth]{./figures/neighbour-illustration}
-    \caption{Illustration showing that the 6 vertical neighbours (highlighted in red) of the green cell are not contiguous
-    in memory when representing a 2D array as a 1D array of points in row-major order.}
-    \label{fig:neighbour-illustration}
-    \end{figure}
+    The simple convolution method would prefer column-wise decomposition as it would reduce the number of cache misses
+    when counting the 6 neighbours that are not horizontally adjacent to the current cell.
+    This is because shorter rows would reduce the distance in memory between a cell and it's vertical neighbour.
+    Theoretically, the separable kernel should not have this issue if the separable convolution can be applied in two horizontal
+    passes with a transpose in between.
 
-    Therefore, when implementing the simple convolution method, column-wise decomposition would be preferred as it would 
-    reduce the number of cache misses.
-    This is because an $N \times N$ grid split into $P$ columns would yield a \inlinecode{N/P * sizeof(int)} byte distance
-    between a cell and it's vertical neighbour whereas the same grid split into $P$ rows would yield a
-    \inlinecode{N * sizeof(int)} byte distance, and $P$ blocks would yield a distance of yield
-    \inlinecode{N/sqrt(P) * sizeof(int)} (assuming $P$ is a square number and $N$ is perfectly divisible by $P$).
+    \subsection{Hiding Communication Behind Computation}\label{subsec:hiding-comms}
+    To the extent of hiding communication behind computation, the separable convolution allows naturally for the horizontal
+    pass to be done first, and then the vertical pass to be done after the vertical halos have been exchanged.
+    Doing the vertical pass first is also possible but likely to be less efficient due to the strided memory access.
+    This would, however, only hide communication if the horizontal halos arrive before the vertical halos which is not guaranteed.
+    Given that the horizontal halo exchange involves the exchange of non-contiguous data (assuming the grid is represented
+    as a 1D array in row-major order), unless the horizontal halos are smaller than the vertical halos (which would be
+    the case in row decomposition), the communication will likely not be hidden behind computation.
+    There are other factors such as physical positioning of the MPI ranks and the network topology that will also affect
+    the communication overheads between MPI ranks, so it is hard to predict how much time could be consistently saved by
+    hiding communication in this method.
 
-    However, the separable kernel method does not have this issue as the data is contiguous on the horizontal pass,
-    and the data can be made contiguous for the vertical pass by transposing the grid.
-    Therefore, it does not matter which decomposition method is used for the separable kernel method with respect to cache
-    misses.
-    Furthermore, the type of domain decomposition used will also affect the speed of the transpose operation.
-    If the transpose operation is done by writing contiguous and reading strided (which is generally faster), then column
-    decomposition would be preferred as it would reduce the number of cache misses when reading the grid.
+    The alternative option for hiding communication is to count the neighbours with the simple convolution
+    for all the cells that are not on the boundary, and then count the neighbours for the cells on the boundary once the halo
+    exchange has been completed.
+    The downside of this is that it involves a lot of non-contiguous memory access, which is not ideal for performance, but
+    how this method compares to the previous method as the simulation scaled will need to be investigated.
 
-    However, which decomposition method is faster is still dependent on how the memory exchange rates between MPI ranks
-    affects the overall performance of the algorithm, meaning both columns and blocks will need to be explored for efficiency.
-    Likewise, a variety of OpenMP techniques will be used to multithread the convolution and transpose operation within
-    each MPI rank, and various single thread optimisations will be explored to make use of SIMD vectorisation on the CPU level.
-    These are all explored and the assumptions above are all tested in the next section to identify the optimal algorithm.
+    \subsection{Updating Grid}\label{subsec:update-grid}
+    Given the neighbour count and the current state of the grid, there are a few possible ways to update the grid \cite{branchless-programming}.
+    \begin{itemize}
+        \item \textbf{\inlinecode{if} statements.} This is the most straightforward implementation.
+        The minimum number of \inlinecode{if} statements required to implement the rules of Conway's Game of Life is 3,
+        and it is unlikely the CPU will be able to optimise this to any degree with branch prediction, so
+        this method will likely be the slowest.
+        \item \textbf{Bitwise operations.} This method removes all \inlinecode{if} statements and replaces them with
+            inline bitwise (\inlinecode{&&} and \inlinecode{||}) operations.
+        \item \textbf{Lookup table.} Given that there is only 18 states a cell can be in (dead or alive, with 0 to 8 neighbours),
+            a lookup array can be used to update the grid with the new state of each cell, given one of the current
+            18 states.
+    \end{itemize}
+    The efficacy of these methods will need to be tested to see which is the most efficient.
+
+    \subsection{OpenMP with MPI}\label{subsec:omp-with-mpi}
+    The final consideration is to assess how to use OpenMP with MPI.
+    Not all loops will be infinitely parallelisable, more threads won't always yield a linear speedup.
+    Likewise, more MPI ranks yields more communication overheads, and as such there will be trade-offs in this respect.
+    The trade-off between OpenMP and MPI will need to be investigated empirically to see what the best combination is.
+
 
 
