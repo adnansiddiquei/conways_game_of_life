@@ -83,7 +83,7 @@
 
     The alternative option for hiding communication is to count the neighbours with the simple convolution
     for all the cells that are not on the boundary, and then count the neighbours for the cells on the boundary once the halo
-    exchange has been completed.
+    exchange has been completed (note, this method is later referred back to as the 'SimpleIO' method).
     The downside of this is that it involves a lot of non-contiguous memory access, which is not ideal for performance, but
     how this method compares to the previous method as the simulation scaled will need to be investigated.
 
