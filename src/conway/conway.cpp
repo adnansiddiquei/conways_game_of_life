@@ -4,6 +4,8 @@
 #include <omp.h>
 
 #include <array>
+#include <filesystem>  // For std::filesystem
+#include <fstream>
 #include <iostream>
 #include <random>
 #include <string>
@@ -341,4 +343,74 @@ std::array<int, 2> conway::get_decomposed_grid_size(int rank, int n_ranks,
             << std::endl;
         std::exit(1);
     }
+}
+
+void conway::read_from_text_file(conway::ConwaysArray2DWithHalo &arr,
+                                 std::string filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open the file.");
+    }
+
+    std::string line;
+    int row_count = 0;
+    while (std::getline(file, line)) {
+        for (int col = 0; col < line.size(); col++) {
+            if (line[col] == '0' || line[col] == '1') {
+                arr(row_count, col) = line[col] - '0';
+            } else {
+                // Handle error for unexpected characters
+                throw std::runtime_error("Unexpected character in input file.");
+            }
+        }
+        row_count++;
+    }
+
+    if (row_count != arr.get_rows()) {
+        throw std::runtime_error(
+            "The number of rows in the file does not match the expected size.");
+    }
+}
+
+void conway::save_to_text_file(conway::ConwaysArray2DWithHalo &arr,
+                               std::string filename) {
+    std::ofstream file(filename);  // Open the file for writing
+
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file for writing: " + filename);
+        return;
+    }
+
+    int n_rows = arr.get_rows();
+    int n_cols = arr.get_cols();
+
+    for (int i = 0; i < n_rows; i++) {
+        for (int j = 0; j < n_cols; j++) {
+            file << std::to_string(arr(i, j));  // Write the element
+        }
+        file << "\n";  // End of row
+    }
+
+    file.close();  // Close the file
+}
+
+void conway::save_to_text_file(array2d::Array2D<int> &arr, std::string filename) {
+    std::ofstream file(filename);  // Open the file for writing
+
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file for writing: " + filename);
+        return;
+    }
+
+    int n_rows = arr.get_rows();
+    int n_cols = arr.get_cols();
+
+    for (int i = 0; i < n_rows; i++) {
+        for (int j = 0; j < n_cols; j++) {
+            file << std::to_string(arr(i, j));  // Write the element
+        }
+        file << "\n";  // End of row
+    }
+
+    file.close();  // Close the file
 }

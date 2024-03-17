@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <filesystem>  // For std::filesystem
+
 #include "array2d.h"
 #include "conway.h"
 
@@ -135,4 +137,66 @@ TEST(conway, ConwaysArray2DWithHalo__transition) {
             EXPECT_EQ(arr2(i, j), arr3(i, j));
         }
     }
+}
+
+/**
+ * Test conway::read_from_text_file
+ */
+TEST(conway, read_from_text_file) {
+    int n_rows = 81, n_cols = 81;
+
+    conway::ConwaysArray2DWithHalo arr(n_rows, n_cols);
+    conway::read_from_text_file(
+        arr, std::filesystem::absolute("../../tests/test_grid_glider.txt"));
+
+    ASSERT_EQ(arr(0, 1), 1);
+    ASSERT_EQ(arr(1, 2), 1);
+    ASSERT_EQ(arr(2, 0), 1);
+    ASSERT_EQ(arr(2, 1), 1);
+    ASSERT_EQ(arr(2, 2), 1);
+
+    arr(0, 1) = 0;
+    arr(1, 2) = 0;
+    arr(2, 0) = 0;
+    arr(2, 1) = 0;
+    arr(2, 2) = 0;
+
+    for (int i = 0; i < n_rows; i++) {
+        for (int j = 0; j < n_cols; j++) {
+            ASSERT_EQ(arr(i, j), 0);
+        }
+    }
+}
+
+/**
+ * Test conway::save_to_text_file
+ */
+TEST(conway, save_to_text_file) {
+    int n_rows = 81, n_cols = 81;
+
+    conway::ConwaysArray2DWithHalo arr(n_rows, n_cols);
+    conway::read_from_text_file(
+        arr, std::filesystem::absolute("../../tests/test_grid_glider.txt"));
+
+    ASSERT_EQ(arr(0, 1), 1);
+    ASSERT_EQ(arr(1, 2), 1);
+    ASSERT_EQ(arr(2, 0), 1);
+    ASSERT_EQ(arr(2, 1), 1);
+    ASSERT_EQ(arr(2, 2), 1);
+
+    conway::save_to_text_file(
+        arr, std::filesystem::absolute("../../bin/test_grid_glider_test_output.txt"));
+
+    conway::ConwaysArray2DWithHalo arr2(n_rows, n_cols);
+    conway::read_from_text_file(
+        arr2, std::filesystem::absolute("../../bin/test_grid_glider_test_output.txt"));
+
+    ASSERT_EQ(arr2(0, 1), 1);
+    ASSERT_EQ(arr2(1, 2), 1);
+    ASSERT_EQ(arr2(2, 0), 1);
+    ASSERT_EQ(arr2(2, 1), 1);
+    ASSERT_EQ(arr2(2, 2), 1);
+
+    std::filesystem::remove(
+        std::filesystem::absolute("../../bin/test_grid_glider_test_output.txt"));
 }

@@ -127,47 +127,37 @@ float parse_arg_float(int &argc, char *argv[], std::string option, bool required
     }
 }
 
-void save_to_text_file(array2d::Array2D<int> &arr, std::string filename) {
-    std::ofstream file(filename);  // Open the file for writing
-
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file for writing: " << filename << std::endl;
-        return;
-    }
-
-    int n_rows = arr.get_rows();
-    int n_cols = arr.get_cols();
-
-    for (int i = 0; i < n_rows; i++) {
-        for (int j = 0; j < n_cols; j++) {
-            file << std::to_string(arr(i, j));  // Write the element
-        }
-        file << "\n";  // End of row
-    }
-
-    file.close();  // Close the file
-}
-
 int main(int argc, char *argv[]) {
     // parse the arguments passed into the script
+    std::string filepath = parse_arg(argc, argv, "--file", false);
     int grid_size = parse_arg_int(argc, argv, "--grid-size", true);
-    int random_seed = parse_arg_int(argc, argv, "--random-seed", false);
-    float probability = parse_arg_float(argc, argv, "--probability", true);
-    std::string decomposition_type = parse_arg(argc, argv, "--mpi-decomp", true);
     int generations = parse_arg_int(argc, argv, "--generations", true);
+    int random_seed;
+    float probability;
 
-    // Ensure that a valid decomposition type was specified
-    if (decomposition_type != "column" & decomposition_type != "row" &
-        decomposition_type != "grid") {
-        std::cerr << "Out of range: --mpi-decomp must be one of \"column\", \"row\" or "
-                     "\"grid\"."
-                  << std::endl;
-        std::exit(1);
+    // If a file was not provided then we need the following params
+    if (filepath == "") {
+        random_seed = parse_arg_int(argc, argv, "--random-seed", false);
+        probability = parse_arg_float(argc, argv, "--probability", true);
     }
 
-    // Ensure a positive and non-zero number of generations was passed in
-    if (generations < 1) {
-        std::cerr << "Out of range: --generations must be larger than 0." << std::endl;
+    std::string decomposition_type = "row";
+
+    // ---- COLUMN DECOMP HAS BEEN REMOVED FOR THE MOMENT ----
+    // std::string decomposition_type = parse_arg(argc, argv, "--mpi-decomp", true);
+    // Ensure that a valid decomposition type was specified
+    // if (decomposition_type != "column" & decomposition_type != "row" &
+    //     decomposition_type != "grid") {
+    //     std::cerr << "Out of range: --mpi-decomp must be one of \"column\", \"row\"
+    //     or "
+    //                  "\"grid\"."
+    //               << std::endl;
+    //     std::exit(1);
+    // }
+
+    // Ensure a non-negative number of generations was passed in
+    if (generations < 0) {
+        std::cerr << "Out of range: --generations must non-negative." << std::endl;
         std::exit(1);
     }
 
@@ -216,9 +206,11 @@ int main(int argc, char *argv[]) {
     if (rank == 0) {
         large_grid = new conway::ConwaysArray2DWithHalo(grid_size, grid_size);
 
-        // Fill the grid (excluding the halo) with 1s and 0s according to the
-        // probability and random_seed the user inputted on the command line.
-        large_grid->fill_randomly(probability, random_seed);
+        if (filepath == "") {
+            large_grid->fill_randomly(probability, random_seed);
+        } else {
+            conway::read_from_text_file(*large_grid, filepath);
+        }
     }
 
     MPI_Datatype MPI_Block_type_1;
@@ -285,10 +277,10 @@ int main(int argc, char *argv[]) {
         grid.transition_lookup(neighbour_count);
     }
 
-    array2d::Array2D<int> *final_grid;
+    conway::ConwaysArray2DWithHalo *final_grid;
 
     if (rank == 0) {
-        final_grid = new array2d::Array2D<int>(grid_size, grid_size);
+        final_grid = new conway::ConwaysArray2DWithHalo(grid_size, grid_size);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -310,7 +302,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (rank == 0) {
-        save_to_text_file(*final_grid, "bin/output.txt");
+        conway::save_to_text_file(*final_grid, "bin/output.txt");
         delete final_grid;
     }
 
