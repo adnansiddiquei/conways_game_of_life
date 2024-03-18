@@ -1,4 +1,5 @@
 #include <mpi.h>
+#include <omp.h>
 
 #include <array>
 #include <cstdlib>
@@ -10,6 +11,7 @@
 
 #include "array2d.h"
 #include "conway.h"
+#include "timer.h"
 
 /**
  * Parses the command line arguments passed into this script, and returns the value (as
@@ -131,6 +133,7 @@ int main(int argc, char *argv[]) {
     // parse the arguments passed into the script
     std::string input_filepath = parse_arg(argc, argv, "--input", false);
     std::string output_filepath = parse_arg(argc, argv, "--output", false);
+    int verbose = parse_arg_int(argc, argv, "--verbose", false);
     int grid_size = parse_arg_int(argc, argv, "--grid-size", true);
     int generations = parse_arg_int(argc, argv, "--generations", true);
     int random_seed;
@@ -253,6 +256,7 @@ int main(int argc, char *argv[]) {
     std::array<int, 8> neighbour_ranks = grid.get_neighbour_ranks(cartesian2d, dims);
 
     // Evolve the grid for the specified number of generations
+    timer::start_clock();
     for (int i = 0; i < generations; i++) {
         std::array<MPI_Request, 8> send_requests;
         std::array<MPI_Request, 8> recv_requests;
@@ -276,6 +280,13 @@ int main(int argc, char *argv[]) {
 
         // Transition to the next state
         grid.transition_lookup(neighbour_count);
+    }
+
+    // print some output to the terminal that can be redirected and saved if required
+    if (rank == 0 && verbose == 1) {
+        double duration = timer::get_split();
+        std::cout << n_ranks << "," << omp_get_max_threads() << "," << grid_size << ","
+                  << generations << "," << duration << std::endl;
     }
 
     conway::ConwaysArray2DWithHalo *final_grid;

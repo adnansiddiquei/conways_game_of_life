@@ -22,6 +22,12 @@
     Additionally, the code was documented using Doxygen to ensure that the code was easy to understand and maintain.
     This was particularly important as aspects of the code were quite complex.
 
+    Polymrphism was also used to make the code more modular and easier to maintain.
+    Much of the utility code is written in a generic manner and then inherited by the specific classes that need it.
+    For example, the \inlinecode{Array2D} acted as a base class for the \inlinecode{Array2DWithHalo} which further
+    acted as a base class for \inlinecode{ConwaysArray2DWithHalo}.
+    This allowed for the code to be kept minimal and reusable.
+
     Effective error handling was also implemented, raising descriptive errors where possible, especially against
     invalid user input.
 

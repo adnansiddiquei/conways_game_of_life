@@ -33,6 +33,14 @@
     outcome which means the SimpleIO method is a good candidate for hiding communication overheads, as the vast majority
     of the computation can be done while waiting for the communication to complete.
     It is worth noting that all of these methods show diminishing returns as the number of OMP threads increases.
+
+    It is worth noting that loop unrolling was implemented in all of these convolutions, the kernel was applied
+    to the grid manually rather than having an additional loop (0 to 9) which applied the kernel.
+    Whilst this was extra lines of code, experimentally, this was found to yield about a 2.5x speedup.
+    Additionally, all of these double nested loops (which looped over the rows and columns of the grids) were parallelised
+    using the OMP \inlinecode{parallel for collapse} clause which allowed OMP to collapse and parallelise the
+    nested loops.
+
     \begin{figure}[htb]
     \centering
     \includegraphics[width=0.75\textwidth]{./figures/simpleio}
@@ -82,18 +90,32 @@
     Similar to Fig.\eqref{fig:simpleio}, Fig.\eqref{fig:lookup} shows that the lookup method for updating the grid starts
     to show diminishing returns in performance after about 8 OMP threads have been created.
 
-    \subsection{Interim Conclusions}\label{subsec:interim-conclusions}
+    \subsection{Algorithm Conclusions}\label{subsec:interim-conclusions}
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=0.75\textwidth]{./figures/flowchat-2}
+    \caption{An updated version of Fig.\eqref{fig:high-level-flowchart} with the conclusions from the experimentation
+    and profiling.}
+    \label{fig:flowhcart-2}
+    \end{figure}
     Given the performance testing of the neighbour counting and grid updating methods, the SimpleIO and lookup methods
     are the best candidates for the simulation.
     The SimpleIO can be used to hide communication overheads effectively and the lookup method is the fastest way to
-    update the grid.
+    update the grid, Fig \eqref{fig:flowhcart-2} shows an updated flowchart of the overall algorithm.
     These conclusions are likely transferable to other architectures, but the exact number of OMP threads that yield
     the best performance will need to be re-evaluated for each architecture.
     It is likely that for the M1 Pro, the bottleneck at roughly 8 OMP threads is due to memory constraints rather
     than the algorithm itself not parallelising well, given that the datasets used in the simulation are large enough
     to completely fill L1 and shared L2 caches.
 
+    The optimal domain decomposition was not explored due to time constraints, row-wise decomposition was implemented
+    for the sake of simplicity and it was preferred over column-wise decomposition to reduce non-contiguous data
+    exchange between MPI ranks.
+    The last thing to explore is the optimal number of MPI ranks to use, and the optimal ratio of MPI ranks to OMP threads.
 
+    \subsection{MPI Ranks and OMP Threads}\label{subsec:mpi-omp}
+    The conclusions drawn in this section would be very system dependent, the results on an M1 Pro chip are unlikely
+    to directly transfer to a HPC cluster.
 
 
 
