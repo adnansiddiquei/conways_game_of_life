@@ -91,9 +91,9 @@
     to show diminishing returns in performance after about 8 OMP threads have been created.
 
     \subsection{Algorithm Conclusions}\label{subsec:interim-conclusions}
-\begin{figure}[htb]
+    \begin{figure}[htb]
     \centering
-    \includegraphics[width=0.75\textwidth]{./figures/flowchat-2}
+    \includegraphics[width=0.9\textwidth]{./figures/flowchat-2}
     \caption{An updated version of Fig.\eqref{fig:high-level-flowchart} with the conclusions from the experimentation
     and profiling.}
     \label{fig:flowhcart-2}
@@ -114,8 +114,19 @@
     The last thing to explore is the optimal number of MPI ranks to use, and the optimal ratio of MPI ranks to OMP threads.
 
     \subsection{MPI Ranks and OMP Threads}\label{subsec:mpi-omp}
-    The conclusions drawn in this section would be very system dependent, the results on an M1 Pro chip are unlikely
-    to directly transfer to a HPC cluster.
+    \begin{figure}[htb]
+    \centering
+    \includegraphics[width=1\textwidth]{./figures/mpi_vs_omp_mac}
+    \caption{Two plots illustrating the compute time for the simulation across various number of MPI ranks and OMP threads.
+        The left plot is computed with a grid size of 5000, and the right is computed with a grid size of 2500. Both are
+        timed over 200 generations and averaged over 2 runs.}
+    \label{fig:mpi_vs_omp_mac}
+    \end{figure}
+
+    Fig.\eqref{fig:mpi_vs_omp_mac} illustrates the dynamic between the number of MPI ranks and OMP threads on the compute time
+    on a Macbook M1 Pro.
+    TODO : Run something like this on the HPC. And get some results for that and discuss.
+
 
 
 
