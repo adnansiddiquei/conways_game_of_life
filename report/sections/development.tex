@@ -1,0 +1,33 @@
+%! Author = adnansiddiquei
+%! Date = 08/03/2024
+
+\section{Development}\label{sec:development}
+    This section discusses the development of the code and software engineering best practises.
+
+    CMake was used to manage the entire build process, including the compilation of the code, and running of tests.
+    For formatting, the code was run through \inlinecode{clang-format} automatically on every build to ensure a consistent
+    style.
+    This was done by writing a custom CMake function and tying it into the build process.
+
+    Tests were written using the GoogleTest framework, and tied into the build process using CMake.
+    These tests were run regularly, primarily before creating any merge requests into main.
+    To make writing the tests easy, and to ensure that the tests were comprehensive, the code was written in a modular
+    way, such that the code was easy to test in small isolated units.
+
+    Generally, best practises with regard to Git were followed, such as creating a new branch for every new feature
+    or bug fix, and writing meaningful commit messages.
+    New issues were created for every feature, and branches and merge requests were made against these issues to make
+    work easy to track.
+
+    Additionally, the code was documented using Doxygen to ensure that the code was easy to understand and maintain.
+    This was particularly important as aspects of the code were quite complex.
+
+    Polymrphism was also used to make the code more modular and easier to maintain.
+    Much of the utility code is written in a generic manner and then inherited by the specific classes that need it.
+    For example, the \inlinecode{Array2D} acted as a base class for the \inlinecode{Array2DWithHalo} which further
+    acted as a base class for \inlinecode{ConwaysArray2DWithHalo}.
+    This allowed for the code to be kept minimal and reusable.
+
+    Effective error handling was also implemented, raising descriptive errors where possible, especially against
+    invalid user input.
+

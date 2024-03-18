@@ -96,7 +96,47 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        // Time the separable_convolution
+        // Proxy time the separable_convolution with transpose
+        for (int num_threads : all_num_threads) {
+            for (int grid_size : grid_sizes) {
+                omp_set_num_threads(num_threads);
+                num_threads = omp_get_max_threads();
+
+                conway::ConwaysArray2DWithHalo grid(grid_size, grid_size);
+                grid.fill_randomly(0.5, -1, true);  // fill all cells, including halo
+
+                array2d::Array2D<int> neighbour_count(grid_size, grid_size, 0);
+
+                timer::start_clock();
+
+                array2d::Array2DWithHalo<int> horizontal_pass(grid_size, grid_size);
+
+                // We will just do 2 horizontal passes as a proxy for the SeparableT
+                // time.
+#pragma omp parallel for collapse(2)
+                for (int i = -1; i < grid_size + 1; i++) {
+                    for (int j = 0; j < grid_size; j++) {
+                        int sum = grid(i, j - 1) + grid(i, j) + grid(i, j + 1);
+                        horizontal_pass(i, j) = sum;
+                    }
+                }
+
+#pragma omp parallel for collapse(2)
+                for (int i = -1; i < grid_size + 1; i++) {
+                    for (int j = 0; j < grid_size; j++) {
+                        int sum = grid(i, j - 1) + grid(i, j) + grid(i, j + 1);
+                        horizontal_pass(i, j) = sum;
+                    }
+                }
+
+                double duration = timer::get_split();
+
+                output_file << "separable_convolution_T," << num_threads << ","
+                            << grid_size << "," << duration << std::endl;
+            }
+        }
+
+        // Time the SimpleIO convolution
         for (int num_threads : all_num_threads) {
             for (int grid_size : grid_sizes) {
                 omp_set_num_threads(num_threads);
