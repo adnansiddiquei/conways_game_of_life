@@ -1,4 +1,7 @@
 #!/bin/bash
+# This script simply runs the simulation numerous times with a bunch of different config, and outputs the 
+# time to a file so it can be plotted.
+
 run_simulation() {
     OMP_NUM_THREADS=${1:-3} # Default to 3 if not specified
     MPI_PROCESSES=${2:-2}   # Default to 2 if not specified
