@@ -72,20 +72,26 @@
     \subsection{Hiding Communication Behind Computation}\label{subsec:hiding-comms}
     To the extent of hiding communication behind computation, the separable convolution allows naturally for the horizontal
     pass to be done first, and then the vertical pass to be done after the vertical halos have been exchanged.
-    Doing the vertical pass first is also possible but likely to be less efficient due to the strided memory access.
-    This would, however, only hide communication if the horizontal halos arrive before the vertical halos which is not guaranteed.
-    Given that the horizontal halo exchange involves the exchange of non-contiguous data (assuming the grid is represented
-    as a 1D array in row-major order), unless the horizontal halos are smaller than the vertical halos (which would be
-    the case in row decomposition), the communication will likely not be hidden behind computation.
-    There are other factors such as physical positioning of the MPI ranks and the network topology that will also affect
-    the communication overheads between MPI ranks, so it is hard to predict how much time could be consistently saved by
-    hiding communication in this method.
+    Doing the vertical pass first is also possible but likely to be less efficient due to the strided memory access (assuming
+    the grid is represented as 1D array in row-major order).
+    This method, however, would only hide communication if the horizontal halos arrive before the vertical halos which is
+    only guaranteed (or with sufficiently higher probability) in row-based decomposition where the horizontal halos live
+    on the same MPI rank.
+    For column based decomposition it is unlikely that the large chunk of non-contiguous data (horizontal column borders)
+    will arrive before the smaller chunk of contiguous data (vertical row borders) within the same MPI rank.
+    For block decomposition, there would be many factors involved such as the physical positioning of the MPI ranks and the network
+    topology which would affect the communication overheads between MPI ranks.
 
     The alternative option for hiding communication is to count the neighbours with the simple convolution
     for all the cells that are not on the boundary, and then count the neighbours for the cells on the boundary once the halo
-    exchange has been completed (note, this method is later referred back to as the 'SimpleIO' method).
-    The downside of this is that it involves a lot of non-contiguous memory access, which is not ideal for performance, but
-    how this method compares to the previous method as the simulation scaled will need to be investigated.
+    exchange has been completed (note, this method is later referred back to as the 'SimpleIO' method as a short form for
+    'Simple Inner Outer' method).
+    This removes the dependency on certain halos arriving before others, but downside of this is that it involves a lot
+    of non-contiguous memory access (when doing the outer loop), which is not ideal for performance, but how this method
+    compares to the previous method as the simulation scaled will need to be investigated.
+
+    It is worth noting that similar inner-outer method can be applied to the separable kernel method, where the horizontal
+    pass is done first while excluding the left and right most columns until the left and right halos have arrived.
 
     \subsection{Updating Grid}\label{subsec:update-grid}
     Given the neighbour count and the current state of the grid, there are a few possible ways to update the grid \cite{branchless-programming}.

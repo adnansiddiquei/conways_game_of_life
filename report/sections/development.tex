@@ -7,7 +7,7 @@
     CMake was used to manage the entire build process, including the compilation of the code, and running of tests.
     For formatting, the code was run through \inlinecode{clang-format} automatically on every build to ensure a consistent
     style.
-    This was done by writing a custom CMake function and tying it into the build process.
+    This was done by writing a custom CMake function (based off J.R. Fergusson's template) and tying it into the build process.
 
     Tests were written using the GoogleTest framework, and tied into the build process using CMake.
     These tests were run regularly, primarily before creating any merge requests into main.

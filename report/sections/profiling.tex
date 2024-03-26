@@ -2,8 +2,7 @@
 %! Date = 08/03/2024
 
 \section{Experimentation, Profiling and Optimisation}\label{sec:profiling}
-    This section discusses the experimentation and profiling of the different methods discussed in the previous
-    section (Section \eqref{sec:prototyping}).
+    This section discusses the experimentation and profiling of the different methods discussed in Section \eqref{sec:prototyping}.
     Most of the experimentation was done on a Macbook M1 Pro (see Appendix \eqref{app:macbook-specs}), which is why the number of OpenMP threads for local
     experimentation was limited to 10.
     \subsection{Profiling the Convolution Methods}\label{subsec:prof-conv}
@@ -18,7 +17,7 @@
         The Simple and Separable methods are as described in \eqref{subsec:domain-decomp} and the SimpleIO method is
         as described in \eqref{subsec:hiding-comms})
         The SeparableT method is the Separable method done in 2 horizontal passes with a transpose in between, except
-        the time on the graph is just the compute time to repeast the first horizontal pass twice (i.e, it is the time
+        the time on the graph is just the compute time to repeat the first horizontal pass twice (i.e, it is the time
         for the actual SeparableT method minus the tranpose compute time).
         This was done for simplicity, to assess whether a tranpose operation needed coding.
         The compute time is averaged over 3 runs.}
@@ -34,9 +33,10 @@
     of the computation can be done while waiting for the communication to complete.
     It is worth noting that all of these methods show diminishing returns as the number of OMP threads increases.
 
-    It is worth noting that loop unrolling was implemented in all of these convolutions, the kernel was applied
-    to the grid manually rather than having an additional loop (0 to 9) which applied the kernel.
-    Whilst this was extra lines of code, experimentally, this was found to yield about a 2.5x speedup.
+    Loop unrolling was implemented in all of these convolutions, the kernel was applied
+    to the grid manually rather than having an additional loop (0 to 8) which applied the kernel.
+    Experimentally, this was found to yield about a 2.5x speedup (for the sake of brevity, no figures were generated to
+    supplement this conclusion).
     Additionally, all of these double nested loops (which looped over the rows and columns of the grids) were parallelised
     using the OMP \inlinecode{parallel for collapse} clause which allowed OMP to collapse and parallelise the
     nested loops.
@@ -64,7 +64,8 @@
     \begin{figure}[htb]
     \centering
     \includegraphics[width=0.75\textwidth]{./figures/transitions}
-    \caption{A figure showing the compute time for the 3 the update methods discussed in Section \eqref{subsec:update-grid}.
+    \caption{A figure showing the compute time (the time taken to update the entire grid once) for the 3 the update methods
+        discussed in Section \eqref{subsec:update-grid}.
         The colour of the line indicates the method used, and the line style (dotted, dashed, solid) indicates the number
         OpenMP threads used (1, 5 and 10 respectively).
         Only 1 MPI rank was used.
@@ -75,7 +76,7 @@
     Fig.\eqref{fig:transitions} explores the update methods discussed in Section \eqref{subsec:update-grid}, with a
     clear conclusion that the lookup method is the fastest, and as expected, the \inlinecode{if} method is the slowest.
     This makes sense, due to the (effectively) random nature of the simulation, the CPU will have little success
-    in branch predictions, contributing to the slowness of the \inlinecode{if} method down.
+    in branch predictions, contributing to the slowness of the \inlinecode{if} method.
     The frequent lookup in an 18-length array is relatively inexpensive compared to frequent branching.
 
     \begin{figure}[htb]
@@ -109,8 +110,8 @@
     to completely fill L1 and shared L2 caches.
 
     The optimal domain decomposition was not explored due to time constraints, row-wise decomposition was implemented
-    for the sake of simplicity and it was preferred over column-wise decomposition to reduce non-contiguous data
-    exchange between MPI ranks.
+    for the sake of simplicity and it was preferred over column-wise decomposition to reduce non-contiguous data transfer
+    in the halo exchange.
     The last thing to explore is the optimal number of MPI ranks to use, and the optimal ratio of MPI ranks to OMP threads.
 
     \subsection{MPI Ranks and OMP Threads}\label{subsec:mpi-omp}
