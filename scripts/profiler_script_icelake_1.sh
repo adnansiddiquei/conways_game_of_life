@@ -1,6 +1,5 @@
 #!/bin/bash
-# This script simply runs the simulation numerous times with a bunch of different config, and outputs the 
-# time to a file so it can be plotted.
+# This script runs the simulation multiple times on icelake, with different MPI ranks.
 
 run_simulation() {
     OMP_NUM_THREADS=${1:-3} # Default to 3 if not specified
@@ -19,12 +18,18 @@ run_simulation() {
     eval $CMD
 }
 
+out_file=./src/plotting/mpi_hpc.csv 
+err_file=./src/plotting/mpi_hpc_errors.txt
+
+# add the header if the file does not exist yet
+if [ ! -f "$out_file" ]; then
+  echo "ranks,threads,grid_size,generations,duration" > "$out_file"
+fi
+
 for iters in 0 1; do
     for GS in 2500 5000; do
-        for ranks in 1 2 4 6 8 10; do
-            for threads in 1 2 4 6 8 10; do
-                run_simulation $ranks $threads "./bin/out.txt" $GS 0.7 21 200 1 >> ./src/plotting/mpi_omp.csv
-            done
+        for ranks in {1..76}; do
+            run_simulation 1 $ranks "./bin/out.txt" $GS 0.7 21 200 1 2>> "$err_file" | grep '^[0-9]\+,[0-9]\+,.*' >> "$out_file"
         done
     done
 done

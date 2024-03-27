@@ -10,9 +10,9 @@
 
 #! sbatch directives begin here ###############################
 #! Name of the job:
-#SBATCH -J cpujob
+#SBATCH -J as3438-1
 #! Which project should be charged:
-#SBATCH -A CHANGEME
+#SBATCH -A MPHIL-DIS-SL2-CPU
 #SBATCH -p icelake
 #! How many whole nodes should be allocated?
 #SBATCH --nodes=1
@@ -21,9 +21,10 @@
 #! 3380 MiB of memory per CPU.
 #SBATCH --ntasks=76
 #! How much wallclock time will be required?
-#SBATCH --time=02:00:00
+#SBATCH --time=00:30:00
 #! What types of email messages do you wish to receive?
-#SBATCH --mail-type=NONE
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=as3438@cam.ac.uk
 #! Uncomment this to prevent the job from being requeued (e.g. if
 #! interrupted by node failure or system downtime):
 ##SBATCH --no-requeue
@@ -53,10 +54,13 @@ mpi_tasks_per_node=$(echo "$SLURM_TASKS_PER_NODE" | sed -e  's/^\([0-9][0-9]*\).
 module purge                               # Removes all modules still loaded
 module load rhel8/default-icl              # REQUIRED - loads the basic environment
 
+
 #! Insert additional module load commands after this line if needed:
+module load intel-oneapi-compilers
+module load intel-oneapi-mpi
 
 #! Full path to application executable: 
-application=""
+application="/home/as3438/arc/as3438/scripts/profiler_script_icelake_1.sh"
 
 #! Run options for the application:
 options=""

@@ -6,6 +6,24 @@
 #include "conway.h"
 
 /**
+ * @brief  Function that ensures an arrays values are between a min (inclusive) and max
+ (exclusive).
+
+ * @param  array: The Array2D to test.
+ * @param  min_val: Min values (inclusive).
+ * @param  max_val: Max value (excludive).
+ */
+template <typename T>
+void check_array_elements_in_range(array2d::Array2D<T>& array, T min_val, T max_val) {
+    for (int i = 0; i < array.get_rows(); i++) {
+        for (int j = 0; j < array.get_cols(); j++) {
+            EXPECT_GE(array(i, j), min_val);
+            EXPECT_LT(array(i, j), max_val);
+        }
+    }
+}
+
+/**
  * Test conway::ConwaysArray2DWithHalo
  */
 TEST(conway, ConwaysArray2DWithHalo) {
@@ -72,6 +90,11 @@ TEST(conway, ConwaysArray2DWithHalo__convolve) {
     arr2.fill_randomly(0.6, 42, true);
     arr3.fill_randomly(0.6, 42, true);
 
+    // Make sure that all cells are between [0, 1)
+    check_array_elements_in_range(arr1, 0, 2);
+    check_array_elements_in_range(arr2, 0, 2);
+    check_array_elements_in_range(arr3, 0, 2);
+
     // Count the neighbours using the two different convolution methods
     array2d::Array2D<int> neighbour_count1(n_rows, n_cols);
     array2d::Array2D<int> neighbour_count2(n_rows, n_cols);
@@ -117,13 +140,18 @@ TEST(conway, ConwaysArray2DWithHalo__transition) {
     arr2.simple_convolve(neighbour_count2);
     arr3.simple_convolve(neighbour_count3);
 
-    // Make sure that they
+    // Make sure that all methods gave the same neighbour count
     for (int i = 0; i < n_rows; i++) {
         for (int j = 0; j < n_cols; j++) {
             EXPECT_EQ(neighbour_count1(i, j), neighbour_count2(i, j));
             EXPECT_EQ(neighbour_count2(i, j), neighbour_count3(i, j));
         }
     }
+
+    // Make sure that all neighbour counts are in the appropriate range
+    check_array_elements_in_range(neighbour_count1, 0, 9);
+    check_array_elements_in_range(neighbour_count2, 0, 9);
+    check_array_elements_in_range(neighbour_count3, 0, 9);
 
     // Now progress the arrays onto the next generation using the 3 methods
     arr1.transition_ifs(neighbour_count1);

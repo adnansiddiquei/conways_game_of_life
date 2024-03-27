@@ -298,31 +298,47 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
 
     MPI_Request null_req;
+    std::vector<MPI_Request> final_send_requests(n_ranks, MPI_REQUEST_NULL);
 
     for (int i = 0; i < n_ranks; i++) {
+        if (i != rank) {
+            continue;
+        }
+
         MPI_Isend(&grid(0, 0), 1,
                   i != n_ranks - 1 ? MPI_Block_type_1 : MPI_Block_type_2, 0, i,
-                  cartesian2d, &null_req);
+                  cartesian2d, &final_send_requests[i]);
     }
+
+    std::vector<MPI_Request> final_recv_requests(n_ranks, MPI_REQUEST_NULL);
 
     if (rank == 0) {
         for (int i = 0; i < n_ranks; i++) {
-            MPI_Recv(&(*final_grid)(i * rows_per_rank, 0), 1,
-                     i != n_ranks - 1 ? MPI_Block_type_1 : MPI_Block_type_2, i, i,
-                     cartesian2d, MPI_STATUS_IGNORE);
+            MPI_Irecv(&(*final_grid)(i * rows_per_rank, 0), 1,
+                      i != n_ranks - 1 ? MPI_Block_type_1 : MPI_Block_type_2, i, i,
+                      cartesian2d, &final_recv_requests[i]);
         }
     }
+
+    MPI_Wait(&final_send_requests[rank], MPI_STATUS_IGNORE);
+
+    // If rank 0, also wait for all receive operations to complete before proceeding
+    if (rank == 0) {
+        MPI_Waitall(n_ranks, final_recv_requests.data(), MPI_STATUSES_IGNORE);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     if (rank == 0) {
         conway::save_to_text_file(*final_grid, output_filepath);
         delete final_grid;
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
     MPI_Type_free(&MPI_Block_type_1);
     MPI_Type_free(&MPI_Block_type_2);
     MPI_Type_free(&MPI_Column_type);
 
+    MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
 
     return 0;
