@@ -57,7 +57,7 @@ Full usage documenation below:
 #             was mainly used for performance testing and can be ignored for general use.
 ```
 
-If providing an input file with `--input`, the file must be in a format identical to [`src/tests/test_grid_glider.txt`](src/tests/test_grid_glider.txt).
+If providing an input file with `--input`, the file must be in a format identical to [`tests/test_grid_glider.txt`](tests/test_grid_glider.txt).
 The file must be a square grid (N lines, and N characters per line), with no delimiters. A `1` represents a living cell and a `0`
 represents a dead cell. The `--grid-size` parameter must also be provided and it must match exactly with
 the number of lines and characters per line in the input file.
@@ -111,10 +111,10 @@ sbatch scripts/slurm_submit_1.peta4-icelake
 sbatch scripts/slurm_submit_2.peta4-icelake
 ```
 Same as before, the outputs will be placed into the `src/plotting` folder. To plot these, `scp` them back into the same folder
-on your local compute and run the corresponding cells in the `plots.ipynb` notebook.
+on your local computer and run the corresponding cells in the `plots.ipynb` notebook.
 
 ## <a name="tests"></a> 3. Tests
-After running `make all` you can run `make test` and this will run the entire testing GoogleTest testing suite within the `tests/` folder.
+After running `make all` you can run `make test` and this will run the entire GoogleTest testing suite within the `tests/` folder.
 
 Ensure that your local machine can handle generating up to 6 MPI ranks, as the tests in `tests/test_mpi_comms.cpp`
 attempts to run a small simulation across 6 ranks.
