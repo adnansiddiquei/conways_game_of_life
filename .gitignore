@@ -8,6 +8,7 @@ CMakeFiles/
 bin
 .vscode/
 src/plotting/*.csv
+src/plotting/*.txt
 src/plotting/*.png
 
 ### TeX template

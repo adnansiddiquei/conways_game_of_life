@@ -31,3 +31,6 @@ clean-docs :
 
 docs : clean-docs
 	doxygen doxygen.config
+
+conda-env :
+	conda env create -f environment.yml

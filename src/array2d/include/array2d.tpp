@@ -71,5 +71,6 @@ Array2DWithHalo<T>::Array2DWithHalo(int n_rows, int n_cols)
 
 template <typename T>
 T &Array2DWithHalo<T>::operator()(int i, int j) {
+    // Indexing (0, 0) starts from the top left cell that is not a halo
     return this->data[(i + 1) * (this->n_cols + 2) + (j + 1)];
 };
