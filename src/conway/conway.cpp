@@ -220,6 +220,15 @@ void ConwaysArray2DWithHalo::MPI_Isend_all(MPI_Comm &cartesian2d,
                                            std::array<MPI_Request, 8> &requests,
                                            std::array<int, 8> &neighbours,
                                            MPI_Datatype &MPI_Column_type) {
+    /*
+     * Here we go through each of the 8 possible directions we can send data:
+     *   top-left, up, top-right, right, etc..
+     * We send the data to the neighbour specified in the neighbours array.
+     *
+     * E.g., neighbours[0] should be the rank that is to the top left, so
+     * that we can send the top left cell to the bottom right halo of the
+     * top left rank.
+     */
     MPI_Isend(&(*this)(0, 0), 1, MPI_INT, neighbours[0], 0, cartesian2d,
               &requests[0]);  // send top left cell
 
@@ -249,6 +258,15 @@ void ConwaysArray2DWithHalo::MPI_Irecv_all(MPI_Comm &cartesian2d,
                                            std::array<MPI_Request, 8> &requests,
                                            std::array<int, 8> &neighbours,
                                            MPI_Datatype &MPI_Column_type) {
+    /*
+     * Here we go through each of the 8 possible directions we can recieve data
+     * and receive it into the right section.
+     *
+     * E.g., neighbours[3] specifies the rank that is to the right of the
+     * current rank. Therefore, we are expecting neighbours[3] to send
+     * us a column of data, which we want to recieve into the right
+     * halo column
+     */
     MPI_Irecv(&(*this)(-1, -1), 1, MPI_INT, neighbours[0], 4, cartesian2d,
               &requests[0]);  // receive top left halo cell
 

@@ -8,6 +8,10 @@
 #include "conway.h"
 #include "timer.h"
 
+/**
+ * @brief  Times the lookup update method for different OMP_NUM_THREADS and outputs
+ * a csv of results to `src/plotting`
+ */
 int main(int argc, char *argv[]) {
     // Open the output file
     std::ofstream output_file("src/plotting/lookup.csv");

@@ -8,6 +8,10 @@
 #include "conway.h"
 #include "timer.h"
 
+/**
+ * @brief  Times all of the different convolution methods and outputs a csv of
+ * results to `src/plotting`
+ */
 int main(int argc, char *argv[]) {
     // Open the output file
     std::ofstream output_file("src/plotting/convolutions.csv");
@@ -64,13 +68,6 @@ int main(int argc, char *argv[]) {
 
                 output_file << "simple_convolve," << num_threads << "," << grid_size
                             << "," << duration << std::endl;
-
-                // int i = 3, j = 7;
-                // int sum = grid(i, j - 1) + grid(i, j + 1) + grid(i - 1, j - 1) +
-                //           grid(i - 1, j) + grid(i - 1, j + 1) + grid(i + 1, j - 1) +
-                //           grid(i + 1, j) + grid(i + 1, j + 1);
-
-                // std::cout << sum << " " << neighbour_count(i, j) << std::endl;
             }
         }
 
