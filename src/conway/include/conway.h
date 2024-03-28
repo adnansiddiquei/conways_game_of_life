@@ -9,7 +9,6 @@
 #ifndef AS3438_CONWAY_H
 #define AS3438_CONWAY_H
 
-// TODO: comment
 namespace conway {
 class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
    public:
@@ -141,9 +140,30 @@ class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
     void MPI_Isend_all(MPI_Comm &cartesian2d, std::array<MPI_Request, 8> &requests,
                        std::array<int, 8> &neighbours, MPI_Datatype &MPI_Column_type);
 
+    /**
+     * @brief  Wait for all of the border cells in the halos cells of the adjacent
+     * MPI ranks to arrive.
+     *
+     * @param  &cartesian2d: The MPI_Comm variable associated wth the cartesian2d.
+     * @param  &requests: An array of MPI_Request objects. These are used to track the
+     * status of the non-blocking recv operations. There are 8 requests corresponding to
+     * the 8 possible directions of communication in a 2D grid (including diagonals).
+     * @param  &neighbours: An array of integers holding the rank IDs of the neighbour
+     * ranks in the cartesian2d. The order goes: top left, top, top right, right, bottom
+     * right, bottom, bottom left, left.
+     * @param  &MPI_Column_type: The MPI_Datatype that describes the layout of the
+     * column data that is being sent to and from the horizonal borders.
+     */
     void MPI_Irecv_all(MPI_Comm &cartesian2d, std::array<MPI_Request, 8> &requests,
                        std::array<int, 8> &neighbours, MPI_Datatype &MPI_Column_type);
 
+    /**
+     * @brief  Wait for every single send and recieve request to complete before
+     * continuing execution.
+     *
+     * @param  &send_reqs: The send requests to wait for.
+     * @param  &recv_reqs: The recv requests to wait for.
+     */
     void MPI_Wait_all(std::array<MPI_Request, 8> &send_reqs,
                       std::array<MPI_Request, 8> &recv_reqs);
 
@@ -151,13 +171,45 @@ class ConwaysArray2DWithHalo : public array2d::Array2DWithHalo<int> {
                                            std::array<int, 2> &dims);
 };
 
+/**
+ * @brief  Get the decomposed grid_size for a given decomposition type and a
+ * given rank.
+ *
+ * Currently only "row" and "column" are implemented. However, the simulation
+ * does not implement "column" decomposition, this funtion was to be utilised
+ * if "column" decomp was implemented. Therefore, this function is currently
+ * not useful.
+ *
+ * @param  rank: The current rank.
+ * @param  n_ranks: The total number of ranks.
+ * @param  grid_size: The total grid size for the simulation.
+ * @param  decomposition_type: "row" or "column".
+ */
 std::array<int, 2> get_decomposed_grid_size(int rank, int n_ranks, int grid_size,
                                             std::string decomposition_type);
 
+/**
+ * @brief  Read an array into the provided array.
+ *
+ * @param  &arr: The array to read the file into.
+ * @param  filename: The path to the file.
+ */
 void read_from_text_file(conway::ConwaysArray2DWithHalo &arr, std::string filename);
 
+/**
+ * @brief  Save the provided array into a text file.
+ *
+ * @param  &arr: The array to save.
+ * @param  filename: Where to save the array.
+ */
 void save_to_text_file(array2d::Array2D<int> &arr, std::string filename);
 
+/**
+ * @brief  Save the provided array into a text file.
+ *
+ * @param  &arr: The array to save.
+ * @param  filename: Where to save the array.
+ */
 void save_to_text_file(conway::ConwaysArray2DWithHalo &arr, std::string filename);
 
 }  // namespace conway
