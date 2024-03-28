@@ -1,11 +1,12 @@
 # C2: Research Computing (CW Assignment) - Conway's Game of Life
 ## Table of Contents
 1. [Run](#run)
-2. [Generating the Figures / Performance Testing](#pt)
-3. [Understanding the Code Structure](#ucs)
+2. [Generating the figures / performance testing](#pt)
+3. [Understanding the code structure](#ucs)
 4. [Tests](#tests)
 5. [Documentation](#docs)
 6. [Report](#report)
+7. [Use of auto-generation tools](#auto)
 
 ## <a name="run"></a> 1. Running the simulation
 Clone the repository and then run
@@ -156,3 +157,12 @@ And then open `docs/html/index.html` in your browser.
 
 ## <a name="report"></a> 6. Report
 The report is located at [report/out/main.pdf](report/out/main.pdf).
+
+## <a name="auto"></a> 7. Use of auto-generation tools
+Auto-generation tools, specifically ChatGPT and co-pilot were used in a few instances throughout the project as
+detailed here:
+ - Co-pilot was used to assist in writing a lot of the docstrings via tab completion. These were amended as required.
+ - ChatGPT was used heavily in creating the shell scripts in the `scripts/` folder. The bash function `run_simulation`
+was almost entirely written by ChatGPT, with a few minor edits.
+ - ChatGPT was used to assist in a few matplotlib plot formatting queries.
+
